@@ -28,7 +28,7 @@ LOCAL_CLANG := false
 ##### libavutil
 
 FFMPEG_LIBAVUTIL_SRC_FILES := \
-    libavutil/../compat/strtod.c \
+    compat/strtod.c \
     libavutil/adler32.c \
     libavutil/aes.c \
     libavutil/aes_ctr.c \
