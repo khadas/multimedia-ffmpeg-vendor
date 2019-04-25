@@ -161,6 +161,7 @@ struct MpegTSContext {
     int current_pid;
     int64_t ca_system_id;/*id for dvb ca system*/
     int64_t ecm_pid;/*pid for encrypted mpegts*/
+    uint8_t *private_data;/*private data in ca descriptor*/
 };
 
 #define MPEGTS_OPTIONS \
@@ -182,6 +183,8 @@ static const AVOption options[] = {
      {.i64 = 0}, 0, 0xffff, AV_OPT_FLAG_EXPORT},
     {"ecm_pid", "pid for encrypted mpegts", offsetof(MpegTSContext, ecm_pid), AV_OPT_TYPE_INT,
      {.i64 = 0}, 0, 0x1fff, AV_OPT_FLAG_EXPORT},
+    {"private_data", "private data in ca descriptor", offsetof(MpegTSContext, private_data), AV_OPT_TYPE_BINARY,
+     0, 0, AV_OPT_FLAG_EXPORT},
     { NULL },
 };
 
@@ -2032,6 +2035,7 @@ static void pmt_cb(MpegTSFilter *filter, const uint8_t *section, int section_len
     int mp4_descr_count = 0;
     Mp4Descr mp4_descr[MAX_MP4_DESCR_COUNT] = { { 0 } };
     int i;
+    ts->private_data = NULL;
     ts->ecm_pid = 0x1fff;/*default invalid value*/
     av_log(ts->stream, AV_LOG_TRACE, "PMT: len %i\n", section_len);
     hex_dump_debug(ts->stream, section, section_len);
@@ -2088,11 +2092,19 @@ static void pmt_cb(MpegTSFilter *filter, const uint8_t *section, int section_len
             prog_reg_desc = bytestream_get_le32(&p);
             len -= 4;
         } else if (tag == 0x09) {
-            get16(&p, p_end); //ca_system_id
+            ts->ca_system_id = get16(&p, p_end); //ca_system_id
             ts->ecm_pid = get16(&p, p_end) & 0x1fff;//ecm_pid
             len -= 4;
+            if (av_opt_set_int(ts, "ca_system_id", ts->ca_system_id, 0) != 0)
+                av_log(ts->stream, AV_LOG_WARNING, "set cas id error!\n");
             if (av_opt_set_int(ts, "ecm_pid", ts->ecm_pid, 0) != 0)
                 av_log(ts->stream, AV_LOG_WARNING, "set ecm error!\n");
+            if (len > 0) {
+                ts->private_data = av_malloc(len);
+                memcpy(ts->private_data, p, len);
+                if (av_opt_set_bin(ts, "private_data", ts->private_data, len, 0) != 0)
+                    av_log(ts->stream, AV_LOG_WARNING, "set private data error!\n");
+            }
         }
         p += len;
     }
@@ -2976,6 +2988,11 @@ static void mpegts_free(MpegTSContext *ts)
     int i;
 
     clear_programs(ts);
+
+    if (ts->private_data != NULL) {
+        av_free(ts->private_data);
+        ts->private_data = NULL;
+    }
 
     for (i = 0; i < NB_PID_MAX; i++)
         if (ts->pids[i])
