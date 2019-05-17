@@ -159,6 +159,7 @@ struct MpegTSContext {
     /** filters for various streams specified by PMT + for the PAT and PMT */
     MpegTSFilter *pids[NB_PID_MAX];
     int current_pid;
+    int64_t ca_system_id;/*id for dvb ca system*/
     int64_t ecm_pid;/*pid for encrypted mpegts*/
 };
 
@@ -177,6 +178,8 @@ static const AVOption options[] = {
      {.i64 = 0}, 0, 1, 0 },
     {"skip_clear", "skip clearing programs", offsetof(MpegTSContext, skip_clear), AV_OPT_TYPE_BOOL,
      {.i64 = 0}, 0, 1, 0 },
+    {"ca_system_id", "id for dvb ca system", offsetof(MpegTSContext, ca_system_id), AV_OPT_TYPE_INT,
+     {.i64 = 0}, 0, 0xffff, AV_OPT_FLAG_EXPORT},
     {"ecm_pid", "pid for encrypted mpegts", offsetof(MpegTSContext, ecm_pid), AV_OPT_TYPE_INT,
      {.i64 = 0}, 0, 0x1fff, AV_OPT_FLAG_EXPORT},
     { NULL },
@@ -1994,6 +1997,12 @@ int ff_parse_mpeg2_descriptor(AVFormatContext *fc, AVStream *st, int stream_type
         if (profile == 8 || profile == 9) {
             st->codec->dolby_vision_bl_compat_id = bl_compatibility_id;
         }
+        break;
+    case 0x09: /* CAS descriptor */
+        ts->ca_system_id = get16(pp, desc_end);
+        if (av_opt_set_int(ts, "ca_system_id", ts->ca_system_id, 0) != 0)
+            av_log(ts->stream, AV_LOG_WARNING, "set cas id error!\n");
+        av_log(fc, AV_LOG_TRACE, "ca_system_id:0x%llx\n", ts->ca_system_id);
         break;
     default:
         break;
