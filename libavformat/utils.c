@@ -77,7 +77,7 @@ const char *avformat_license(void)
     return LICENSE_PREFIX FFMPEG_LICENSE + sizeof(LICENSE_PREFIX) - 1;
 }
 
-int64_t avformat_getcurtime_us(void)
+static int64_t avformat_getcurtime_us(void)
 {
     struct timespec timeval;
     clock_gettime(CLOCK_MONOTONIC, &timeval);
