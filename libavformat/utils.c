@@ -1621,7 +1621,7 @@ FF_ENABLE_DEPRECATION_WARNINGS
             if (st->parser && s && s->iformat
                  && s->iformat->name
                  && !strcmp(s->iformat->name, "mpegvideo")) {
-                 st->parser->flags |= PARSER_FLAG_HAS_MPEG2V_META;
+                 st->parser->flags |= PARSER_FLAG_HAS_ES_META;
             }
         }
 
@@ -3773,8 +3773,10 @@ FF_ENABLE_DEPRECATION_WARNINGS
                 }
                 if (st->parser && ic && ic->iformat
                      && ic->iformat->name
-                     && !strcmp(ic->iformat->name, "mpegvideo")) {
-                     st->parser->flags |= PARSER_FLAG_HAS_MPEG2V_META;
+                     && (!strcmp(ic->iformat->name, "mpegvideo")
+                        || !strcmp(ic->iformat->name, "ac3")
+                        || !strcmp(ic->iformat->name, "eac3"))) {
+                     st->parser->flags |= PARSER_FLAG_HAS_ES_META;
                 }
             } else if (st->need_parsing) {
                 av_log(ic, AV_LOG_VERBOSE, "parser not found for codec "
