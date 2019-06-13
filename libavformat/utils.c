@@ -2888,7 +2888,7 @@ static void estimate_timings_from_pts(AVFormatContext *ic, int64_t old_offset)
 
             avio_seek(ic->pb, offset, SEEK_SET);
             ret = ic->iformat->read_packet(ic, pkt);
-            if (ret == FFERROR_REDO) {
+            if (ret < 0) {
                 found_pes_header = 0;
             } else {
                 found_pes_header = 1;
