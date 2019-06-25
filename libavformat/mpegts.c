@@ -2960,6 +2960,11 @@ static int mpegts_read_packet(AVFormatContext *s, AVPacket *pkt)
                 }
             }
     }
+    if (pkt->pts != AV_NOPTS_VALUE
+        && pkt->dts != AV_NOPTS_VALUE
+        && llabs(pkt->dts - pkt->pts) > 90000 * 60 * 60) {
+        pkt->dts = pkt->pts;
+    }
 
     if (!ret && pkt->size < 0)
         ret = AVERROR_INVALIDDATA;
