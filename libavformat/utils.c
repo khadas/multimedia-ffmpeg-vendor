@@ -1477,6 +1477,21 @@ static int parse_packet(AVFormatContext *s, AVPacket *pkt, int stream_index)
         if (st->parser->key_frame == -1 && st->parser->pict_type ==AV_PICTURE_TYPE_NONE && (pkt->flags&AV_PKT_FLAG_KEY))
             out_pkt.flags |= AV_PKT_FLAG_KEY;
 
+        /*
+        Hevc_parse does not get the special H265 frame type.
+        In this case, if parsing MP4 gets a keyframe, then set this frame as a keyframe.
+        */
+        if (st->codecpar->codec_id == AV_CODEC_ID_HEVC &&
+          strstr(s->iformat->name,"mp4")  &&
+          st->parser->key_frame == 0 &&
+          st->parser->pict_type == AV_PICTURE_TYPE_I &&
+          st->parser->picture_structure == AV_PICTURE_STRUCTURE_UNKNOWN &&
+          out_pkt.flags == 0 &&
+          (pkt->flags & AV_PKT_FLAG_KEY)) {
+            out_pkt.flags |= AV_PKT_FLAG_KEY;
+            av_log(s, AV_LOG_ERROR, "hevc_parser cannot get the key frame type of hevc!index:%d\n",pkt->stream_index);
+        }
+
         compute_pkt_fields(s, st, st->parser, &out_pkt, next_dts, next_pts);
 
         ret = add_to_pktbuf(&s->internal->parse_queue, &out_pkt,
