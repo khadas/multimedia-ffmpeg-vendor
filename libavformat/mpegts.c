@@ -159,8 +159,9 @@ struct MpegTSContext {
     /** filters for various streams specified by PMT + for the PAT and PMT */
     MpegTSFilter *pids[NB_PID_MAX];
     int current_pid;
-    int64_t ca_system_id;/*id for dvb ca system*/
-    int64_t ecm_pid;/*pid for encrypted mpegts*/
+    int ca_system_id;/*id for dvb ca system*/
+    int video_ecm_pid;/*video pid for encrypted mpegts*/
+    int audio_ecm_pid;/*audio pid for encrypted mpegts*/
     uint8_t *private_data;/*private data in ca descriptor*/
 };
 
@@ -181,7 +182,9 @@ static const AVOption options[] = {
      {.i64 = 0}, 0, 1, 0 },
     {"ca_system_id", "id for dvb ca system", offsetof(MpegTSContext, ca_system_id), AV_OPT_TYPE_INT,
      {.i64 = 0}, 0, 0xffff, AV_OPT_FLAG_EXPORT},
-    {"ecm_pid", "pid for encrypted mpegts", offsetof(MpegTSContext, ecm_pid), AV_OPT_TYPE_INT,
+    {"video_ecm_pid", "video pid for encrypted mpegts", offsetof(MpegTSContext, video_ecm_pid), AV_OPT_TYPE_INT,
+     {.i64 = 0}, 0, 0x1fff, AV_OPT_FLAG_EXPORT},
+    {"audio_ecm_pid", "audio pid for encrypted mpegts", offsetof(MpegTSContext, audio_ecm_pid), AV_OPT_TYPE_INT,
      {.i64 = 0}, 0, 0x1fff, AV_OPT_FLAG_EXPORT},
     {"private_data", "private data in ca descriptor", offsetof(MpegTSContext, private_data), AV_OPT_TYPE_BINARY,
      0, 0, AV_OPT_FLAG_EXPORT},
@@ -1711,7 +1714,7 @@ int ff_parse_mpeg2_descriptor(AVFormatContext *fc, AVStream *st, int stream_type
                               MpegTSContext *ts)
 {
     const uint8_t *desc_end;
-    int desc_len, desc_tag, desc_es_id, ext_desc_tag, channels, channel_config_code;
+    int desc_len, desc_tag, desc_es_id, ext_desc_tag, channels, channel_config_code, ecm_pid;
     char language[252];
     int i;
 
@@ -2006,6 +2009,26 @@ int ff_parse_mpeg2_descriptor(AVFormatContext *fc, AVStream *st, int stream_type
         if (av_opt_set_int(ts, "ca_system_id", ts->ca_system_id, 0) != 0)
             av_log(ts->stream, AV_LOG_WARNING, "set cas id error!\n");
         av_log(fc, AV_LOG_TRACE, "ca_system_id:0x%llx\n", ts->ca_system_id);
+
+        ecm_pid = get16(pp, desc_end) & 0x1fff;
+        desc_len -= 4;
+        if (st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
+            ts->video_ecm_pid = ecm_pid;
+            if (av_opt_set_int(ts, "video_ecm_pid", ts->video_ecm_pid, 0) != 0)
+                av_log(ts->stream, AV_LOG_WARNING, "set video ecm pid error!\n");
+        } else if (st->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
+            ts->audio_ecm_pid = ecm_pid;
+            if (av_opt_set_int(ts, "audio_ecm_pid", ts->audio_ecm_pid, 0) != 0)
+                av_log(ts->stream, AV_LOG_WARNING, "set audio ecm pid error!\n");
+        }
+
+        if (desc_len > 0) {
+            ts->private_data = av_malloc(desc_len);
+            memcpy(ts->private_data, *pp, desc_len);
+            if (av_opt_set_bin(ts, "private_data", ts->private_data, desc_len, 0) != 0)
+                av_log(ts->stream, AV_LOG_WARNING, "set private data error!\n");
+        }
+
         break;
     default:
         break;
@@ -2036,7 +2059,8 @@ static void pmt_cb(MpegTSFilter *filter, const uint8_t *section, int section_len
     Mp4Descr mp4_descr[MAX_MP4_DESCR_COUNT] = { { 0 } };
     int i;
     ts->private_data = NULL;
-    ts->ecm_pid = 0x1fff;/*default invalid value*/
+    ts->video_ecm_pid = 0x1fff;/*default invalid value*/
+    ts->audio_ecm_pid = 0x1fff;/*default invalid value*/
     av_log(ts->stream, AV_LOG_TRACE, "PMT: len %i\n", section_len);
     hex_dump_debug(ts->stream, section, section_len);
 
@@ -2073,6 +2097,7 @@ static void pmt_cb(MpegTSFilter *filter, const uint8_t *section, int section_len
     program_info_length &= 0xfff;
     while (program_info_length >= 2) {
         uint8_t tag, len;
+        int ecm_pid;
         tag = get8(&p, p_end);
         len = get8(&p, p_end);
 
@@ -2093,12 +2118,19 @@ static void pmt_cb(MpegTSFilter *filter, const uint8_t *section, int section_len
             len -= 4;
         } else if (tag == 0x09) {
             ts->ca_system_id = get16(&p, p_end); //ca_system_id
-            ts->ecm_pid = get16(&p, p_end) & 0x1fff;//ecm_pid
+            ecm_pid = get16(&p, p_end) & 0x1fff;//ecm_pid
             len -= 4;
             if (av_opt_set_int(ts, "ca_system_id", ts->ca_system_id, 0) != 0)
                 av_log(ts->stream, AV_LOG_WARNING, "set cas id error!\n");
-            if (av_opt_set_int(ts, "ecm_pid", ts->ecm_pid, 0) != 0)
-                av_log(ts->stream, AV_LOG_WARNING, "set ecm error!\n");
+            if (ts->video_ecm_pid == 0x1fff) {
+                ts->video_ecm_pid = ecm_pid;
+                if (av_opt_set_int(ts, "video_ecm_pid", ts->video_ecm_pid, 0) != 0)
+                    av_log(ts->stream, AV_LOG_WARNING, "set video ecm pid error!\n");
+            } else if (ts->audio_ecm_pid == 0x1fff && ts->video_ecm_pid != 0x1fff) {
+                ts->audio_ecm_pid = ecm_pid;
+                if (av_opt_set_int(ts, "audio_ecm_pid", ts->audio_ecm_pid, 0) != 0)
+                    av_log(ts->stream, AV_LOG_WARNING, "set audio ecm pid error!\n");
+            }
             if (len > 0) {
                 ts->private_data = av_malloc(len);
                 memcpy(ts->private_data, p, len);
