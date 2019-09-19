@@ -301,7 +301,7 @@ int64_t avio_seek(AVIOContext *s, int64_t offset, int whence)
             s->must_flush = 1;
         }
 
-        if (s->eof_reached) {
+        if (s->eof_reached && offset >= s->pos) {
             av_log(s, AV_LOG_WARNING, "already EOFed, return AVERROR_EOF");
             return AVERROR_EOF;
         }
