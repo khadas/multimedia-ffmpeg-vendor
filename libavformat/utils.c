@@ -2888,6 +2888,7 @@ static void estimate_timings_from_pts(AVFormatContext *ic, int64_t old_offset)
         int found_pes_header = 0;
         limit_position = 0;
         max_position = filesize;
+        offset = filesize;
         /*Look for the last pes header*/
         do {
             if (!found_pes_header) {
