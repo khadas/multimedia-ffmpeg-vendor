@@ -2221,49 +2221,51 @@ int ff_seek_frame_binary(AVFormatContext *s, int stream_index,
 int ff_find_last_ts(AVFormatContext *s, int stream_index, int64_t *ts, int64_t *pos,
                     int64_t (*read_timestamp)(struct AVFormatContext *, int , int64_t *, int64_t ))
 {
-#if 0
     int64_t step = 1024;
-    int64_t limit, ts_max;
-    int64_t filesize = avio_size(s->pb);
-    int64_t pos_max  = filesize - 1;
-    do {
-        limit = pos_max;
-        pos_max = FFMAX(0, (pos_max) - step);
-        ts_max  = ff_read_timestamp(s, stream_index,
-                                    &pos_max, limit, read_timestamp);
-        step   += step;
-    } while (ts_max == AV_NOPTS_VALUE && 2*limit > step);
-#else
-    //Use the dichotomy to find the largest PTS
     int64_t limit, ts_max=AV_NOPTS_VALUE;
     int64_t filesize = avio_size(s->pb);
     int64_t pos_max  = filesize - 1;
-    int64_t pos_min  = 0;
-    int64_t read_offset = 0;
-    int64_t ts_max_bak = AV_NOPTS_VALUE;
-    int64_t pos_max_bak = pos_max;
-    read_offset = pos_min+(pos_max-pos_min)/2;
-    limit = pos_max;
-    do {
-        ts_max  = ff_read_timestamp(s, stream_index,
-                                    &read_offset, limit, read_timestamp);
-
-        if (ts_max == AV_NOPTS_VALUE) {
-            pos_max = read_offset;
-        } else {
-            pos_min = read_offset;
-            ts_max_bak = ts_max;
-            pos_max_bak = read_offset;
-        }
-        if (pos_max-pos_min < 188) {
-            break;
-        }
+    if (s && s->iformat && s->iformat->name
+        && !strcmp(s->iformat->name,"mpegts")) {
+        //Use the dichotomy to find the largest PTS for mpegts
+        int64_t pos_min  = 0;
+        int64_t read_offset = 0,read_at = 0;
+        int64_t ts_max_bak = AV_NOPTS_VALUE;
+        int64_t pos_max_bak = pos_max;
         read_offset = pos_min+(pos_max-pos_min)/2;
+        limit = pos_max;
+        do {
+            read_at = read_offset;
+            ts_max  = ff_read_timestamp(s, stream_index,
+                                        &read_at, limit, read_timestamp);
 
-    }while(read_offset < filesize);
-    ts_max = ts_max_bak;
-    pos_max = pos_max_bak;
-#endif
+            if (ts_max == AV_NOPTS_VALUE) {
+                if (read_at < read_offset) read_offset = read_at;
+                pos_max = read_offset;
+            } else {
+                if (read_at > read_offset) read_offset = read_at;
+                pos_min = read_offset;
+                ts_max_bak = ts_max;
+                pos_max_bak = read_offset;
+            }
+            if (pos_max-pos_min < 188) {
+                break;
+            }
+            read_offset = pos_min+(pos_max-pos_min)/2;
+        }while(read_offset < filesize);
+        ts_max = ts_max_bak;
+        pos_max = pos_max_bak;
+    }
+    else {
+        do {
+            limit = pos_max;
+            pos_max = FFMAX(0, (pos_max) - step);
+            ts_max  = ff_read_timestamp(s, stream_index,
+                                        &pos_max, limit, read_timestamp);
+            step   += step;
+        } while (ts_max == AV_NOPTS_VALUE && 2*limit > step);
+    }
+
     if (ts_max == AV_NOPTS_VALUE)
         return -1;
 
