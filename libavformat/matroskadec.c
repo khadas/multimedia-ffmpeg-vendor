@@ -3479,7 +3479,7 @@ static int matroska_read_packet(AVFormatContext *s, AVPacket *pkt)
 
     if (abs(matroska->ctx->pb->pos - matroska->last_pos) > file_size/2 || /*seek to end / seek back to set*/
         (abs(matroska->ctx->pb->pos - matroska->last_pos) >= 250000 && /* seek end estimate retry */
-        abs(matroska->ctx->pb->pos - avio_size(matroska->ctx->pb)) < 2500000)) {
+        llabs(avio_size(matroska->ctx->pb) - matroska->ctx->pb->pos) < 2500000)) {
         /* for avio seek estimate av duration */
         av_log(NULL, AV_LOG_ERROR, "abs %d, clear queue\n",
                 abs(matroska->ctx->pb->pos - matroska->last_pos));
