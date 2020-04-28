@@ -359,6 +359,14 @@ int ff_h2645_packet_split(H2645Packet *pkt, const uint8_t *buf, int length,
                        nal->type);
             }
             pkt->nb_nals--;
+            if (nal->rbsp_buffer) {
+                av_freep(nal->rbsp_buffer);
+                nal->rbsp_buffer = NULL;
+            }
+            if (nal->skipped_bytes_pos) {
+                av_freep(nal->skipped_bytes_pos);
+                nal->skipped_bytes_pos = NULL;
+            }
         }
 
         buf    += consumed;
