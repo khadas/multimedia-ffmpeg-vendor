@@ -360,13 +360,18 @@ int ff_h2645_packet_split(H2645Packet *pkt, const uint8_t *buf, int length,
             }
             pkt->nb_nals--;
             if (nal->rbsp_buffer) {
-                av_freep(nal->rbsp_buffer);
+                av_log(logctx, AV_LOG_ERROR, "Invalid NAL unit %d, skipping. rbsp_buffer free(%p)\n",
+                       nal->type,nal->rbsp_buffer);
+                av_freep(&nal->rbsp_buffer);
                 nal->rbsp_buffer = NULL;
             }
             if (nal->skipped_bytes_pos) {
-                av_freep(nal->skipped_bytes_pos);
+                av_log(logctx, AV_LOG_ERROR, "Invalid NAL unit %d, skipping. skipped_bytes_pos free(%p)\n",
+                       nal->type,nal->skipped_bytes_pos);
+                av_freep(&nal->skipped_bytes_pos);
                 nal->skipped_bytes_pos = NULL;
             }
+            memset(nal, 0, sizeof(*nal));
         }
 
         buf    += consumed;
@@ -380,8 +385,14 @@ void ff_h2645_packet_uninit(H2645Packet *pkt)
 {
     int i;
     for (i = 0; i < pkt->nals_allocated; i++) {
-        av_freep(&pkt->nals[i].rbsp_buffer);
-        av_freep(&pkt->nals[i].skipped_bytes_pos);
+        if (pkt->nals[i].rbsp_buffer) {
+            av_freep(&pkt->nals[i].rbsp_buffer);
+            pkt->nals[i].rbsp_buffer = NULL;
+        }
+        if (pkt->nals[i].skipped_bytes_pos) {
+            av_freep(&pkt->nals[i].skipped_bytes_pos);
+            pkt->nals[i].skipped_bytes_pos = NULL;
+        }
     }
     av_freep(&pkt->nals);
     pkt->nals_allocated = 0;
