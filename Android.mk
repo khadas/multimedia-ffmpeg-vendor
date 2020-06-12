@@ -1507,7 +1507,7 @@ LOCAL_SRC_FILES_arm64 := \
 
 LOCAL_C_INCLUDES += external/zlib
 
-LOCAL_SHARED_LIBRARIES := libutils liblog libdl libz
+LOCAL_SHARED_LIBRARIES := libutils liblog libdl libz libcutils
 
 include $(BUILD_SHARED_LIBRARY)
 
@@ -1560,7 +1560,7 @@ LOCAL_SRC_FILES_arm64 := \
 
 LOCAL_C_INCLUDES += external/zlib
 
-LOCAL_SHARED_LIBRARIES := libutils liblog libdl libz
+LOCAL_SHARED_LIBRARIES := libutils liblog libdl libz libcutils
 
 include $(BUILD_SHARED_LIBRARY)
 endif
