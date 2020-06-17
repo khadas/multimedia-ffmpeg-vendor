@@ -1335,6 +1335,8 @@ FFMPEG_LIBAVFORMAT_SRC_FILES := \
     libavformat/swfenc.c \
     libavformat/takdec.c \
     libavformat/tcp.c \
+    libavformat/tls.c \
+    libavformat/tls_openssl.c \
     libavformat/tedcaptionsdec.c \
     libavformat/tee.c \
     libavformat/tee_common.c \
@@ -1507,7 +1509,9 @@ LOCAL_SRC_FILES_arm64 := \
 
 LOCAL_C_INCLUDES += external/zlib
 
+LOCAL_C_INCLUDES += external/boringssl/src/include
 LOCAL_SHARED_LIBRARIES := libutils liblog libdl libz libcutils
+LOCAL_SHARED_LIBRARIES += libssl libcrypto
 
 include $(BUILD_SHARED_LIBRARY)
 
@@ -1560,7 +1564,9 @@ LOCAL_SRC_FILES_arm64 := \
 
 LOCAL_C_INCLUDES += external/zlib
 
+LOCAL_C_INCLUDES += external/boringssl/src/include
 LOCAL_SHARED_LIBRARIES := libutils liblog libdl libz libcutils
 
+LOCAL_SHARED_LIBRARIES += libssl libcrypto
 include $(BUILD_SHARED_LIBRARY)
 endif
