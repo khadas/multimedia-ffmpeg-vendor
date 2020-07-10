@@ -3793,6 +3793,94 @@ static int avformat_check_dv_meta_el(AVFormatContext *ic, AVStream *st, const ui
     return ret;
 }
 
+// Returns the frame length in bytes as described in an ADTS header starting at the given offset,
+//     or 0 if the size can't be read due to an error in the header or a read failure.
+// The returned value is the AAC frame size with the ADTS header length (regardless of
+//     the presence of the CRC).
+// If headerSize is non-NULL, it will be used to return the size of the header of this ADTS frame.
+static size_t getAdtsFrameLength(AVIOContext *source, off64_t offset, size_t* headerSize) {
+
+    const size_t kAdtsHeaderLengthNoCrc = 7;
+    const size_t kAdtsHeaderLengthWithCrc = 9;
+
+    size_t frameSize = 0;
+
+    uint8_t syncword[2];
+    int64_t cur_pos = avio_seek(source,0,SEEK_CUR);
+    if (cur_pos < 0) {
+        return 0;
+    }
+    if (cur_pos != offset)
+        avio_seek(source, offset, SEEK_SET);
+
+    if (avio_read(source, &syncword, 2) != 2) {
+        return 0;
+    }
+    if ((syncword[0] != 0xff) || ((syncword[1] & 0xf6) != 0xf0)) {
+        return 0;
+    }
+
+    uint8_t protectionAbsent;
+    avio_seek(source, offset+1, SEEK_SET);
+    if (avio_read(source, &protectionAbsent, 1) < 1) {
+        return 0;
+    }
+    protectionAbsent &= 0x1;
+
+    uint8_t header[3];
+    avio_seek(source, offset+3, SEEK_SET);
+    if (avio_read(source, &header, 3) < 3) {
+        return 0;
+    }
+    frameSize = (header[0] & 0x3) << 11 | header[1] << 3 | header[2] >> 5;
+
+    // protectionAbsent is 0 if there is CRC
+    size_t headSize = protectionAbsent ? kAdtsHeaderLengthNoCrc : kAdtsHeaderLengthWithCrc;
+    if (headSize > frameSize) {
+        return 0;
+    }
+    if (headerSize != NULL) {
+        *headerSize = headSize;
+    }
+
+    return frameSize;
+}
+
+// Only for AAC format audio file.
+// ports from android AACExtractor
+static void compute_aac_dur(AVFormatContext *ic) {
+    int64_t file_size = avio_size(ic->pb);
+    int64_t cur_pos = avio_seek(ic->pb,0,SEEK_CUR);
+    int64_t offset = 0;
+    if (file_size <= 0) {
+        return ;
+    }
+    for (int i = 0; i < ic->nb_streams; i++) {
+        AVStream * stream = ic->streams[i];
+        int64_t frameSize = 0, numFrames = 0;
+        if (stream->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
+            uint32_t sr = stream->codec->sample_rate;
+            //port from android AACExtractor.
+            int64_t framedur =  (1024 * 1000000ll + (sr - 1)) / sr;
+            while (offset < file_size) {
+                if ((frameSize = getAdtsFrameLength(ic->pb, offset, NULL)) == 0) {
+                    av_log(NULL,AV_LOG_ERROR,"prematured AAC stream (%lld vs %lld)",
+                            (long long)offset, (long long)file_size);
+                    goto error;
+                }
+                offset += frameSize;
+                numFrames ++;
+            }
+            if (numFrames > 0) {
+                ic->duration = framedur*numFrames;
+                break;
+            }
+        }
+    }
+error:
+    avio_seek(ic->pb, cur_pos, SEEK_SET);
+}
+
 int avformat_find_stream_info(AVFormatContext *ic, AVDictionary **options)
 {
     int i, count = 0, ret = 0, j;
@@ -4381,7 +4469,9 @@ FF_ENABLE_DEPRECATION_WARNINGS
 
         st->internal->avctx_inited = 0;
     }
-
+    if (ic && ic->iformat && ic->iformat->name && !av_strcasecmp("aac", ic->iformat->name)) {
+        compute_aac_dur(ic);
+    }
 find_stream_info_err:
     for (i = 0; i < ic->nb_streams; i++) {
         st = ic->streams[i];
