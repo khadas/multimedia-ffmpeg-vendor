@@ -2242,6 +2242,7 @@ int ff_find_last_ts(AVFormatContext *s, int stream_index, int64_t *ts, int64_t *
             if (ts_max == AV_NOPTS_VALUE) {
                 if (read_at < read_offset) read_offset = read_at;
                 pos_max = read_offset;
+                limit = pos_max;
             } else {
                 if (read_at > read_offset) read_offset = read_at;
                 pos_min = read_offset;
@@ -2307,8 +2308,9 @@ int64_t ff_gen_search(AVFormatContext *s, int stream_index, int64_t target_ts,
     if (ts_min == AV_NOPTS_VALUE) {
         pos_min = s->internal->data_offset;
         ts_min  = ff_read_timestamp(s, stream_index, &pos_min, INT64_MAX, read_timestamp);
-        if (ts_min == AV_NOPTS_VALUE)
+        if (ts_min == AV_NOPTS_VALUE) {
             return -1;
+        }
     }
 
     if (ts_min >= target_ts) {
