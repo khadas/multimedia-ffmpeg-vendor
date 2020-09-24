@@ -112,6 +112,7 @@ static const AVClass hls_context_class = {
     .option     = hls_options,
     .version    = LIBAVUTIL_VERSION_INT,
 };
+#define TRYNUM  (5)
 static int read_chomp_line(AVIOContext *s, char *buf, int maxlen)
 {
     int len = ff_get_line(s, buf, maxlen);
@@ -208,11 +209,23 @@ static int parse_playlist(URLContext *h, const char *url,uint64_t *estbw)
     int playlist_size = 0;
     int64_t start_time = av_gettime_relative();
     int64_t end_time = 0;
+    int trynum = 0;
 
+retry:
     if ((ret = ffio_open_whitelist(&in, url, AVIO_FLAG_READ,
                                    &h->interrupt_callback, NULL,
                                    h->protocol_whitelist, h->protocol_blacklist)) < 0)
-        return ret;
+    {
+        av_log(NULL, AV_LOG_WARNING, "[%s %d]ret %d url %s\n", __FUNCTION__, __LINE__,ret,url);
+        trynum++;
+        if (trynum > TRYNUM)
+            return ret;
+        usleep(10*1000);
+        if (ret == AVERROR_HTTP_OTHER_4XX || ret == AVERROR(ETIMEDOUT))
+            goto retry;
+        else
+            return ret;
+    }
 
     playlist_size = read_chomp_line(in, line, sizeof(line));
     if (strcmp(line, "#EXTM3U")) {
@@ -352,15 +365,16 @@ static int hls_open(URLContext *h, const char *uri, int flags)
 
     if (s->n_segments == 0 && s->n_variants > 0) {
         int max_bandwidth = 0, maxvar = -1;
-        s->index_variants = 0;
         char value[92] = {0};
 
-        if (property_get("media.amffmpeg.start.bw", value, NULL))
-        {
-            bw = atoi((const char*)value);
-            av_log(NULL, AV_LOG_WARNING, "bw=%lld\n",bw);
-        } else
-            bw = 0;
+#if ANDROID_PLATFORM_SDK_VERSION > 28
+        if (property_get("vendor.media.amffmpeg.start.bw", value, NULL))
+#else
+            if (property_get("media.amffmpeg.start.bw", value, NULL))
+#endif
+            {
+                bw = atoi((const char*)value);
+            }
         for (i = 0; i < s->n_variants; i++) {
             if (s->variants[i]->bandwidth <= bw) {
                 s->index_variants = i;
@@ -413,10 +427,30 @@ static int hls_read(URLContext *h, uint8_t *buf, int size)
     int64_t seg_size = 0;
     int64_t bw = 0 ;
     int64_t bandwidth = 0 ;
+    int trynum = 0;
+
 start:
     if (s->seg_hd) {
+       if (ff_check_interrupt(&h->interrupt_callback))
+       {
+               av_log(NULL, AV_LOG_ERROR, "[%s %d]receive quit cmd\n", __FUNCTION__, __LINE__);
+               return AVERROR_EXIT;
+        }
         int64_t start = av_gettime_relative();
+reread:
         ret = ffurl_read(s->seg_hd, buf, size);
+        if (ret < 0)
+        {
+            trynum++;
+            if (trynum > TRYNUM)
+            {
+                av_log(NULL, AV_LOG_ERROR, "[%s %d]ret %d\n", __FUNCTION__, __LINE__,ret);
+                return ret;
+            }
+            usleep(10*1000);
+            av_log(NULL, AV_LOG_WARNING, "[%s %d]\n", __FUNCTION__, __LINE__);
+            goto reread;
+        }
         int64_t delay = av_gettime_relative() - start;
 
         if (s->start_seq_no && (s->cur_seq_no >= s->start_seq_no))
@@ -529,14 +563,27 @@ start:
         }
     }
 retry:
-    if (s->finished && needSwitch)
-        if ((ret = parse_playlist(h, s->playlisturl, &bw)) < 0)
-            return ret;
+        if (ff_check_interrupt(&h->interrupt_callback))
+        {
+            av_log(NULL, AV_LOG_ERROR, "[%s %d]AVERROR_EXIT\n", __FUNCTION__, __LINE__);
+            return AVERROR_EXIT;
+        }
+        if (s->finished && needSwitch) {
+            if ((ret = parse_playlist(h, s->playlisturl, &bw)) < 0) {
+                return ret;
+            }
+        }
+
+	if (ff_check_interrupt(&h->interrupt_callback)) {
+         av_log(NULL, AV_LOG_ERROR, "[%s %d]AVERROR_EXIT\n", __FUNCTION__, __LINE__);
+         return AVERROR_EXIT;
+    }
     if (!s->finished) {
         int64_t now = av_gettime_relative();
         if (now - s->last_load_time >= reload_interval || needSwitch) {
-            if ((ret = parse_playlist(h, s->playlisturl, &bw)) < 0)
+            if ((ret = parse_playlist(h, s->playlisturl, &bw)) < 0) {
                 return ret;
+            }
             /* If we need to reload the playlist again below (if
              * there's still no more segments), switch to a reload
              * interval of half the target duration. */
@@ -553,8 +600,10 @@ retry:
         if (s->finished)
             return AVERROR_EOF;
         while (av_gettime_relative() - s->last_load_time < reload_interval) {
-            if (ff_check_interrupt(&h->interrupt_callback))
-                return AVERROR_EXIT;
+            if (ff_check_interrupt(&h->interrupt_callback)) {
+               av_log(NULL, AV_LOG_ERROR, "[%s %d] AVERROR_EXIT\n", __FUNCTION__, __LINE__);
+               return AVERROR_EXIT;
+            }
             av_usleep(100*1000);
         }
         if (!s->finished && ((av_gettime_relative() - s->last_refreshlisttime) > s->target_duration))
@@ -569,13 +618,20 @@ retry:
         av_log(h, AV_LOG_ERROR, "last_refreshlisttime %lld\n",s->last_refreshlisttime);
     }
     url = s->segments[s->cur_seq_no - s->start_seq_no]->url;
+
+    if (ff_check_interrupt(&h->interrupt_callback)) {
+        av_log(NULL, AV_LOG_ERROR, "[%s %d]AVERROR_EXIT\n", __FUNCTION__, __LINE__);
+        return AVERROR_EXIT;
+    }
     av_log(h, AV_LOG_DEBUG, "opening %s \ncur_no=%lld cur_seq_no=%d\n", url, cur_no, s->cur_seq_no);
     ret = ffurl_open_whitelist(&s->seg_hd, url, AVIO_FLAG_READ,
                                &h->interrupt_callback, NULL,
                                h->protocol_whitelist, h->protocol_blacklist, h);
     if (ret < 0) {
-        if (ff_check_interrupt(&h->interrupt_callback))
-            return AVERROR_EXIT;
+        if (ff_check_interrupt(&h->interrupt_callback)) {
+               av_log(NULL, AV_LOG_ERROR, "[%s %d]AVERROR_EXIT\n", __FUNCTION__, __LINE__);
+               return AVERROR_EXIT;
+        }
         av_log(h, AV_LOG_WARNING, "Unable to open %s\n", url);
         s->cur_seq_no++;
         goto retry;

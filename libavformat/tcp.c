@@ -216,6 +216,8 @@ static int tcp_read(URLContext *h, uint8_t *buf, int size)
 
     if (!(h->flags & AVIO_FLAG_NONBLOCK)) {
         ret = ff_network_wait_fd_timeout(s->fd, 0, h->rw_timeout, &h->interrupt_callback);
+        if (ret == AVERROR(ETIMEDOUT))
+            av_log(h, AV_LOG_INFO,"tcp_read timeout\n");
         if (ret)
             return ret;
     }
