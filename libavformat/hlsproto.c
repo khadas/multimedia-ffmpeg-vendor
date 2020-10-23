@@ -378,7 +378,11 @@ static int hls_open(URLContext *h, const char *uri, int flags)
         goto fail;
     }
     s->cur_seq_no = s->start_seq_no;
-    if (!s->finished && s->n_segments >= 3)
+    if (!s->finished && s->n_segments >= 8)
+        s->cur_seq_no = s->start_seq_no + s->n_segments - 8;
+    else    if (!s->finished && s->n_segments >= 5)
+        s->cur_seq_no = s->start_seq_no + s->n_segments - 5;
+    else    if (!s->finished && s->n_segments >= 3)
         s->cur_seq_no = s->start_seq_no + s->n_segments - 3;
     if (s->finished)
     {
