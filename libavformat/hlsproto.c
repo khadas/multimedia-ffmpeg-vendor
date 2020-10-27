@@ -88,6 +88,7 @@ typedef struct HLSContext {
     uint8_t cur_iv[33];
     URLContext *seg_hd;
     int64_t last_load_time;
+    int64_t last_refreshlisttime;
     int is_encrypted;
     int index_variants;
     int mReadByte;
@@ -556,7 +557,16 @@ retry:
                 return AVERROR_EXIT;
             av_usleep(100*1000);
         }
+        if (!s->finished && ((av_gettime_relative() - s->last_refreshlisttime) > s->target_duration))
+        {
+            av_log(h, AV_LOG_WARNING, "Playlist is not update for %lld so judged that the segment fetch EOF\n",av_gettime_relative() - s->last_refreshlisttime);
+            return AVERROR_EOF;
+        }
         goto retry;
+    }
+    else if (!s->finished) {
+        s->last_refreshlisttime = av_gettime_relative();
+        av_log(h, AV_LOG_ERROR, "last_refreshlisttime %lld\n",s->last_refreshlisttime);
     }
     url = s->segments[s->cur_seq_no - s->start_seq_no]->url;
     av_log(h, AV_LOG_DEBUG, "opening %s \ncur_no=%lld cur_seq_no=%d\n", url, cur_no, s->cur_seq_no);
