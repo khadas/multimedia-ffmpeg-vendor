@@ -1467,6 +1467,7 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE := libamffmpeg
 
+LOCAL_SYSTEM_EXT_MODULE := true
 LOCAL_MODULE_TAGS := optional
 
 ifeq ($(TARGET_ARCH),$(filter $(TARGET_ARCH),arm arm64))
