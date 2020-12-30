@@ -450,6 +450,11 @@ static void sdp_parse_line(AVFormatContext *s, SDPParseState *s1,
             s1->skip_media = 1;
             return;
         }
+
+        if (codec_type == AVMEDIA_TYPE_VIDEO && rt->nb_rtsp_streams) {
+            av_log(NULL, AV_LOG_WARNING, "nb_rtsp_streams is only one");
+            return;
+        }
         rtsp_st = av_mallocz(sizeof(RTSPStream));
         if (!rtsp_st)
             return;
