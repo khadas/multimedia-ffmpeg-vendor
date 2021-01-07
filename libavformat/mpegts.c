@@ -1984,7 +1984,7 @@ int ff_parse_mpeg2_descriptor(AVFormatContext *fc, AVStream *st, int stream_type
         const uint8_t bl_present_flag = (data3 & 0x01);
 
         int32_t bl_compatibility_id = 0;
-        if (desc_len == 4) {
+        if (desc_len >= 4) {
             uint8_t data4 = get8(pp, desc_end);
             bl_compatibility_id = (int32_t)(data4 >> 4);
         }

@@ -1842,7 +1842,7 @@ static int mov_read_dvcc(MOVContext *c, AVIOContext *pb, MOVAtom atom)
 
 
     int32_t bl_compatibility_id = 0;
-    if (atom.size == 4) {
+    if (atom.size >= 4) {
         bl_compatibility_id = (int32_t)(config_data[4] >> 4);
     }
     av_log(c, AV_LOG_INFO, "profile:%d,level:%d bl_compatibility_id:%d\n", profile, level, bl_compatibility_id);
