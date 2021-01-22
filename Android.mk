@@ -9,6 +9,7 @@ FFMPEG_CFLAGS := \
     -Wno-pointer-sign \
     -Wno-sign-compare \
     -Wno-switch \
+    -Wno-string-plus-int \
     -fPIC
 
 FFMPEG_LDFLAGS := -Wl,--as-needed -Wl,-Bsymbolic -lm
