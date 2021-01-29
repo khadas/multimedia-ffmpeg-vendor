@@ -366,7 +366,7 @@ static int hls_open(URLContext *h, const char *uri, int flags)
     if (s->n_segments == 0 && s->n_variants > 0) {
         int max_bandwidth = 0, maxvar = -1;
         char value[92] = {0};
-
+#if 0
 #if ANDROID_PLATFORM_SDK_VERSION > 28
         if (property_get("vendor.media.amffmpeg.start.bw", value, NULL))
 #else
@@ -380,7 +380,16 @@ static int hls_open(URLContext *h, const char *uri, int flags)
                 s->index_variants = i;
             }
         }
-
+#else
+       for (i = 0; i < s->n_variants; i++)
+       {
+           if ( s->variants[i]->bandwidth > max_bandwidth)
+           {
+               max_bandwidth = s->variants[i]->bandwidth;
+               s->index_variants = i;
+           }
+       }
+#endif
         av_strlcpy(s->playlisturl, s->variants[s->index_variants]->url,
                    sizeof(s->playlisturl));
         if ((ret = parse_playlist(h, s->playlisturl, &bw)) < 0)
