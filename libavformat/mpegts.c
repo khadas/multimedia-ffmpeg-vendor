@@ -163,6 +163,8 @@ struct MpegTSContext {
     int video_ecm_pid;/*video pid for encrypted mpegts*/
     int audio_ecm_pid;/*audio pid for encrypted mpegts*/
     uint8_t *private_data;/*private data in ca descriptor*/
+    int page_number;
+    int magazine_number;
 };
 
 #define MPEGTS_OPTIONS \
@@ -1707,6 +1709,21 @@ static const uint8_t opus_channel_map[8][8] = {
     { 0,4,1,2,3,5,6 },
     { 0,6,1,2,3,4,5,7 },
 };
+typedef struct dvbpsi_teletextpage_s
+{
+  uint8_t      i_iso6392_language_code[3];  /* 24 bits */
+  uint8_t      i_teletext_type;             /*  5 bits */
+  uint8_t      i_teletext_magazine_number;  /*  3 bits */
+  uint8_t      i_teletext_page_number;      /*  8 bits */
+
+} dvbpsi_teletextpage_t;
+
+typedef struct dvbpsi_teletext_dr_s
+{
+  uint8_t      i_pages_number;
+  dvbpsi_teletextpage_t p_pages[64];
+
+} dvbpsi_teletext_dr_t;
 
 int ff_parse_mpeg2_descriptor(AVFormatContext *fc, AVStream *st, int stream_type,
                               const uint8_t **pp, const uint8_t *desc_list_end,
@@ -1728,7 +1745,7 @@ int ff_parse_mpeg2_descriptor(AVFormatContext *fc, AVStream *st, int stream_type
     if (desc_end > desc_list_end)
         return AVERROR_INVALIDDATA;
 
-    av_log(fc, AV_LOG_TRACE, "tag: 0x%02x len=%d\n", desc_tag, desc_len);
+    av_log(fc, AV_LOG_ERROR, "tag: 0x%02x len=%d\n", desc_tag, desc_len);
 
     if ((st->codecpar->codec_id == AV_CODEC_ID_NONE || st->request_probe > 0) &&
         stream_type == STREAM_TYPE_PRIVATE_DATA)
@@ -1782,8 +1799,14 @@ int ff_parse_mpeg2_descriptor(AVFormatContext *fc, AVStream *st, int stream_type
     case 0x56: /* DVB teletext descriptor */
         {
             uint8_t *extradata = NULL;
+            uint8_t tmp_extradata;
+            char teletext_info[252] = {0};
+            char pages_number_info[5] = {0};
             int language_count = desc_len / 5;
-
+            int pages_number = desc_len / 5;
+            dvbpsi_teletext_dr_t * p_decoded;
+            p_decoded = (dvbpsi_teletext_dr_t*)malloc(sizeof(dvbpsi_teletext_dr_t));
+            av_log(fc, AV_LOG_ERROR, "0x56 language_count:%d\n", language_count);
             if (desc_len > 0 && desc_len % 5 != 0)
                 return AVERROR_INVALIDDATA;
 
@@ -1810,12 +1833,27 @@ int ff_parse_mpeg2_descriptor(AVFormatContext *fc, AVStream *st, int stream_type
 
                     memcpy(extradata, *pp, 2);
                     extradata += 2;
+                    /*get teletext info*/
+                    tmp_extradata = (uint8_t)get8(pp, desc_end);
+                    p_decoded->p_pages[i].i_teletext_type = tmp_extradata >> 3;
+                    p_decoded->p_pages[i].i_teletext_magazine_number = tmp_extradata & 0x07;
+                    p_decoded->p_pages[i].i_teletext_page_number = (uint8_t)get8(pp, desc_end);
+                    av_log(fc, AV_LOG_ERROR, "0x56 i:%d pages_number:%d, type:0x%x, magazine:0x%x, pagenum:0x%x\n",
+                          i, pages_number, p_decoded->p_pages[i].i_teletext_type, p_decoded->p_pages[i].i_teletext_magazine_number, p_decoded->p_pages[i].i_teletext_page_number);
 
-                    *pp += 2;
+                    sprintf(teletext_info + (i * strlen(teletext_info)), "%d,%d,%d#",
+                          p_decoded->p_pages[i].i_teletext_type, p_decoded->p_pages[i].i_teletext_magazine_number, p_decoded->p_pages[i].i_teletext_page_number);
+                    /*av_dict_set(&st->metadata, "teletext-type", p_decoded->p_pages[i].i_teletext_type, 0);
+                      av_dict_set(&st->metadata, "page-num", p_decoded->p_pages[i].i_teletext_magazine_number, 0);
+                      av_dict_set(&st->metadata, "magazine-num", p_decoded->p_pages[i].i_teletext_page_number, 0);*/
                 }
 
                 language[i * 4 - 1] = 0;
                 av_dict_set(&st->metadata, "language", language, 0);
+                av_dict_set(&st->metadata, "teletext-info", teletext_info, 0);
+                sprintf(pages_number_info, "%d", language_count);
+                av_dict_set_int(&st->metadata, "langcount", language_count, 0);
+                av_log(fc, AV_LOG_ERROR, "language:%s  teletext-info:%s language_count:%d\n", language, teletext_info, language_count);
                 st->internal->need_context_update = 1;
             }
         }
