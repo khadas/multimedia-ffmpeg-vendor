@@ -2225,6 +2225,7 @@ int ff_find_last_ts(AVFormatContext *s, int stream_index, int64_t *ts, int64_t *
     int64_t limit, ts_max=AV_NOPTS_VALUE;
     int64_t filesize = avio_size(s->pb);
     int64_t pos_max  = filesize - 1;
+    int64_t fixed_posmax = pos_max;
     if (s && s->iformat && s->iformat->name
         && !strcmp(s->iformat->name,"mpegts")) {
         //Use the dichotomy to find the largest PTS for mpegts
@@ -2264,6 +2265,13 @@ int ff_find_last_ts(AVFormatContext *s, int stream_index, int64_t *ts, int64_t *
             ts_max  = ff_read_timestamp(s, stream_index,
                                         &pos_max, limit, read_timestamp);
             step   += step;
+            if (ts_max != AV_NOPTS_VALUE &&
+                s->streams[stream_index]->first_dts != AV_NOPTS_VALUE &&
+                ts_max <= s->streams[stream_index]->first_dts) {
+                ts_max = AV_NOPTS_VALUE;
+                fixed_posmax = pos_max;
+                av_log(NULL,AV_LOG_ERROR, "[%s:%d]  ts_max:%lld, first_dts:%lld",__FUNCTION__,__LINE__,ts_max,s->streams[stream_index]->first_dts);
+            }
         } while (ts_max == AV_NOPTS_VALUE && 2*limit > step);
     }
 
@@ -2276,6 +2284,9 @@ int ff_find_last_ts(AVFormatContext *s, int stream_index, int64_t *ts, int64_t *
                                             &tmp_pos, INT64_MAX, read_timestamp);
         if (tmp_ts == AV_NOPTS_VALUE)
             break;
+        if (tmp_pos >= fixed_posmax) {
+            break;
+        }
         av_assert0(tmp_pos > pos_max);
         ts_max  = tmp_ts;
         pos_max = tmp_pos;
