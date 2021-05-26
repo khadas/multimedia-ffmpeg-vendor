@@ -46,6 +46,21 @@ static const uint8_t center_levels[4] = { 4, 5, 6, 5 };
  */
 static const uint8_t surround_levels[4] = { 4, 6, 7, 6 };
 
+static int32_t readVariableBits(GetBitContext *gbc, int32_t nbits) {
+    int32_t value = 0;
+    int32_t more_bits = 1;
+
+    while (more_bits) {
+        value += get_bits(gbc,nbits);
+        more_bits = get_bits(gbc,1);
+        if (!more_bits)
+            break;
+        value++;
+        value <<= nbits;
+    }
+    return value;
+}
+
 
 int avpriv_ac3_parse_header(GetBitContext *gbc, AC3HeaderInfo **phdr)
 {
@@ -61,8 +76,93 @@ int avpriv_ac3_parse_header(GetBitContext *gbc, AC3HeaderInfo **phdr)
     memset(hdr, 0, sizeof(*hdr));
 
     hdr->sync_word = get_bits(gbc, 16);
-    if(hdr->sync_word != 0x0B77)
+    if(hdr->sync_word != 0x0B77 &&
+       hdr->sync_word != 0xAC40 &&
+       hdr->sync_word != 0xAC41)
         return AAC_AC3_PARSE_ERROR_SYNC;
+
+    if (hdr->sync_word == 0xAC40 ||
+       hdr->sync_word == 0xAC41) {
+       hdr->is_ac4 = 1;
+    } else {
+       hdr->is_ac4 = 0;
+    }
+
+    if (hdr->is_ac4) {
+        hdr->frame_size = get_bits(gbc, 16);
+        if (hdr->frame_size == 0xFFFF) {
+            hdr->frame_size = get_bits(gbc, 24);
+        }
+        if (hdr->frame_size == 0) {
+            av_log(NULL,AV_LOG_ERROR,"Invalid frame size in AC4 header.");
+            return AAC_AC3_PARSE_ERROR_FRAME_SIZE;
+        }
+        if (hdr->sync_word == 0xAC41) {
+            // If the sync_word is 0xAC41, a crc_word is also transmitted.
+            hdr->frame_size += 2;
+        }
+        // ETSI TS 103 190-2 V1.1.1 6.2.1.1
+        uint32_t bitstreamVersion = get_bits(gbc, 2);
+        if (bitstreamVersion == 3) {
+            bitstreamVersion += readVariableBits(gbc, 2);
+            av_log(NULL,AV_LOG_ERROR,"bitstreamVersion : %u.",bitstreamVersion);
+        }
+
+        // ETSI TS 103 190 V1.1.1 Table 82
+        int fsIndex = get_bits(gbc,1);
+        uint32_t samplingRate = fsIndex ? 48000 : 44100;
+
+        // ETSI TS 103 190 V1.1.1 Table 83
+        static uint32_t frame_rate_table_48Khz[16] = {
+            23976,
+            24000,
+            25000,
+            29970,
+            30000,
+            47950,
+            48000,
+            50000,
+            59940,
+            60000,
+            100000,
+            119880,
+            120000,
+            23440,
+            0,
+            0,
+        };
+        // ETSI TS 103 190 V1.1.1 Table 84
+        static uint32_t frame_rate_table_44Khz[16] = {
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            21533,  /*11025/512*/
+            0,
+            0,
+        };
+        uint32_t frame_rate_index = 0;
+        frame_rate_index = get_bits(gbc, 4);
+        if (fsIndex) {
+            hdr->frame_rate = frame_rate_table_48Khz[frame_rate_index];
+        } else {
+            hdr->frame_rate = frame_rate_table_44Khz[frame_rate_index];
+        }
+
+        hdr->channels = 2;
+        hdr->sample_rate = samplingRate;
+        av_log(NULL,AV_LOG_TRACE,"[%s:%d] channels:%d, sample_rate:%d, frame_rate:%u.",__FUNCTION__,__LINE__,hdr->channels,hdr->sample_rate,hdr->frame_rate);
+        return 0;
+    }
 
     /* read ahead to bsid to distinguish between AC-3 and E-AC-3 */
     hdr->bitstream_id = show_bits_long(gbc, 29) & 0x1F;
@@ -176,6 +276,9 @@ static int ac3_sync(uint64_t state, AACAC3ParseContext *hdr_info,
     hdr_info->service_type = hdr.bitstream_mode;
     if (hdr.bitstream_mode == 0x7 && hdr.channels > 1)
         hdr_info->service_type = AV_AUDIO_SERVICE_TYPE_KARAOKE;
+    if (hdr.is_ac4) {
+        hdr_info->codec_id = AV_CODEC_ID_AC4;
+    } else
     if(hdr.bitstream_id>10)
         hdr_info->codec_id = AV_CODEC_ID_EAC3;
     else if (hdr_info->codec_id == AV_CODEC_ID_NONE)
@@ -196,7 +299,7 @@ static av_cold int ac3_parse_init(AVCodecParserContext *s1)
 
 
 AVCodecParser ff_ac3_parser = {
-    .codec_ids      = { AV_CODEC_ID_AC3, AV_CODEC_ID_EAC3 },
+    .codec_ids      = { AV_CODEC_ID_AC3, AV_CODEC_ID_EAC3, AV_CODEC_ID_AC4},
     .priv_data_size = sizeof(AACAC3ParseContext),
     .parser_init    = ac3_parse_init,
     .parser_parse   = ff_aac_ac3_parse,

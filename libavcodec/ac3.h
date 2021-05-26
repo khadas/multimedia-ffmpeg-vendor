@@ -177,6 +177,8 @@ typedef struct AC3HeaderInfo {
     /** @name Coded elements
      * @{
      */
+
+    uint8_t is_ac4;
     uint16_t sync_word;
     uint16_t crc1;
     uint8_t sr_code;
@@ -202,6 +204,7 @@ typedef struct AC3HeaderInfo {
     uint8_t channels;
     uint16_t frame_size;
     uint64_t channel_layout;
+    uint32_t frame_rate;
     /** @} */
 } AC3HeaderInfo;
 

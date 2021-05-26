@@ -48,26 +48,30 @@ static void hex_dump_internal(void *avcl, FILE *f, int level,
                               const uint8_t *buf, int size)
 {
     int len, i, j, c;
-
+    char str[256] = {0};
+    int str_len = 0;
     for (i = 0; i < size; i += 16) {
         len = size - i;
+        str_len = 0;
+        memset(str,0,256);
         if (len > 16)
             len = 16;
-        HEXDUMP_PRINT("%08x ", i);
+        str_len+=sprintf(str+str_len,"%08x ", i);
         for (j = 0; j < 16; j++) {
             if (j < len)
-                HEXDUMP_PRINT(" %02x", buf[i + j]);
+                str_len+=sprintf(str+str_len," %02x", buf[i + j]);
             else
-                HEXDUMP_PRINT("   ");
+                str_len+=sprintf(str+str_len,"   ");
         }
-        HEXDUMP_PRINT(" ");
+        str_len+=sprintf(str+str_len," ");
         for (j = 0; j < len; j++) {
             c = buf[i + j];
             if (c < ' ' || c > '~')
                 c = '.';
-            HEXDUMP_PRINT("%c", c);
+            str_len+=sprintf(str+str_len,"%c", c);
         }
-        HEXDUMP_PRINT("\n");
+        str_len+=sprintf(str+str_len,"\n");
+        HEXDUMP_PRINT("%s",str);
     }
 }
 

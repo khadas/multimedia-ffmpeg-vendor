@@ -2428,6 +2428,10 @@ static int mov_finalize_stsd_codec(MOVContext *c, AVIOContext *pb,
     case AV_CODEC_ID_VP9:
         st->need_parsing = AVSTREAM_PARSE_FULL;
         break;
+    case AV_CODEC_ID_AC4:
+        if (st->codecpar->channels == 0)
+            st->codecpar->channels = 2;
+        break;
     default:
         break;
     }
@@ -2503,7 +2507,6 @@ int ff_mov_read_stsd_entries(MOVContext *c, AVIOContext *pb, int entries)
         sc->format = format;
 
         id = mov_codec_id(st, format);
-
         if (size != 36 && format == MKTAG('s','a','w','b')) {
             av_dict_set(&c->fc->metadata, "amextractor_info", "sawb", 0);
             av_log(c->fc, AV_LOG_ERROR, "set amextractor_info sawb\n");

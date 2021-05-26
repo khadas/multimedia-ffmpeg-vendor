@@ -634,6 +634,7 @@ enum AVCodecID {
     AV_CODEC_ID_DST,
     AV_CODEC_ID_ATRAC3AL,
     AV_CODEC_ID_ATRAC3PAL,
+    AV_CODEC_ID_AC4,
 
     AV_CODEC_ID_DRA       = MKBETAG('D','A','R','1'),
 
