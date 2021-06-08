@@ -165,6 +165,11 @@ struct MpegTSContext {
     uint8_t *private_data;/*private data in ca descriptor*/
     int page_number;
     int magazine_number;
+
+    int* dvb_audio_preselection_idxs;
+    unsigned int nb_audio_preselection_idxs;
+    unsigned char* dvb_audio_preselection;
+    unsigned int dvb_audio_preselection_length;
 };
 
 #define MPEGTS_OPTIONS \
@@ -189,6 +194,10 @@ static const AVOption options[] = {
     {"audio_ecm_pid", "audio pid for encrypted mpegts", offsetof(MpegTSContext, audio_ecm_pid), AV_OPT_TYPE_INT,
      {.i64 = 0}, 0, 0x1fff, AV_OPT_FLAG_EXPORT},
     {"private_data", "private data in ca descriptor", offsetof(MpegTSContext, private_data), AV_OPT_TYPE_BINARY,
+     0, 0, AV_OPT_FLAG_EXPORT},
+    {"dvb_audio_preselection", "EXT DESCRIPTOR DVB AUDIO PRESELECTION", offsetof(MpegTSContext, dvb_audio_preselection), AV_OPT_TYPE_BINARY,
+     0, 0, AV_OPT_FLAG_EXPORT},
+    {"dvb_audio_preselection_length", "EXT DESCRIPTOR DVB AUDIO PRESELECTION DATA LENGTH", offsetof(MpegTSContext, dvb_audio_preselection_length), AV_OPT_TYPE_INT,
      0, 0, AV_OPT_FLAG_EXPORT},
     { NULL },
 };
@@ -1725,6 +1734,47 @@ typedef struct dvbpsi_teletext_dr_s
 
 } dvbpsi_teletext_dr_t;
 
+static int mpegts_add_dvb_audio_preselection(MpegTSContext *ts,AVStream *st,unsigned char *data, int len) {
+    if (data == NULL || ts == NULL || st == NULL)
+        return -1;
+    int stream_index = st->index;
+    char stream_index_[4] = {0}, len_[4] = {0};
+    stream_index_[0] = (stream_index>>24)&0xff;
+    stream_index_[1] = (stream_index>>16)&0xff;
+    stream_index_[2] = (stream_index>>8)&0xff;
+    stream_index_[3] = (stream_index)&0xff;
+    len_[0] = (len>>24)&0xff;
+    len_[1] = (len>>16)&0xff;
+    len_[2] = (len>>8)&0xff;
+    len_[3] = (len)&0xff;
+    unsigned char is_exist = 0;
+    for (int i=0; i<ts->nb_audio_preselection_idxs; i++) {
+        if (stream_index == ts->dvb_audio_preselection_idxs[i])
+            is_exist = 1;
+    }
+    if (is_exist)
+        return 0;
+    av_log(NULL,AV_LOG_ERROR,"[%s], stream_index:%d, len:%d, %x %x %x %x %x %x %x %x",__FUNCTION__,stream_index,len
+                    ,stream_index_[0],stream_index_[1],stream_index_[2],stream_index_[3]
+                    ,len_[0],len_[1],len_[2],len_[3]);
+    int new_len = len + ts->dvb_audio_preselection_length;
+    ts->dvb_audio_preselection = av_realloc(ts->dvb_audio_preselection, new_len);
+    ts->dvb_audio_preselection_idxs = (unsigned int *)av_realloc((void*)ts->dvb_audio_preselection_idxs, (ts->nb_audio_preselection_idxs+1)*sizeof(int));
+    memcpy(ts->dvb_audio_preselection+ts->dvb_audio_preselection_length,
+            stream_index_, sizeof(int));//stream index
+    ts->dvb_audio_preselection_length += sizeof(int);
+    memcpy(ts->dvb_audio_preselection+ts->dvb_audio_preselection_length,
+            len_, sizeof(int));//real data len
+    ts->dvb_audio_preselection_length += sizeof(int);
+    memcpy(ts->dvb_audio_preselection+ts->dvb_audio_preselection_length,
+            data, len);//data
+    ts->dvb_audio_preselection_length += len;
+    ts->dvb_audio_preselection_idxs[ts->nb_audio_preselection_idxs] = stream_index;
+    ts->nb_audio_preselection_idxs++;
+    av_log(NULL,AV_LOG_ERROR,"[%s], dvb_audio_preselection_length:%d",__FUNCTION__,ts->dvb_audio_preselection_length);
+    return 0;
+}
+
 int ff_parse_mpeg2_descriptor(AVFormatContext *fc, AVStream *st, int stream_type,
                               const uint8_t **pp, const uint8_t *desc_list_end,
                               Mp4Descr *mp4_descr, int mp4_descr_count, int pid,
@@ -1974,6 +2024,9 @@ int ff_parse_mpeg2_descriptor(AVFormatContext *fc, AVStream *st, int stream_type
             st->codecpar->codec_type = AVMEDIA_TYPE_AUDIO;
             st->codecpar->codec_id = AV_CODEC_ID_AC4;
             st->codecpar->codec_tag = MKTAG('a', 'c', '-', '4');
+        } else if (ext_desc_tag == 0x19) {
+            // EXT_DESCRIPTOR_DVB_AUDIO_PRESELECTION
+            mpegts_add_dvb_audio_preselection(ts,st,*pp,desc_end-*pp);
         } else
         if (st->codecpar->codec_id == AV_CODEC_ID_OPUS &&
             ext_desc_tag == 0x80) { /* User defined (provisional Opus) */
@@ -2881,7 +2934,10 @@ static int mpegts_read_header(AVFormatContext *s)
     uint8_t buf[8 * 1024] = {0};
     int len;
     int64_t pos, probesize = s->probesize;
-
+    ts->dvb_audio_preselection = NULL;
+    ts->dvb_audio_preselection_length = 0;
+    ts->nb_audio_preselection_idxs = 0;
+    ts->dvb_audio_preselection_idxs = NULL;
     if (ffio_ensure_seekback(pb, probesize) < 0)
         av_log(s, AV_LOG_WARNING, "Failed to allocate buffers for seekback\n");
 
@@ -3070,7 +3126,16 @@ static void mpegts_free(MpegTSContext *ts)
     int i;
 
     clear_programs(ts);
-
+    if (ts->dvb_audio_preselection) {
+        av_free(ts->dvb_audio_preselection);
+        ts->dvb_audio_preselection = NULL;
+        ts->dvb_audio_preselection_length = 0;
+    }
+    if (ts->dvb_audio_preselection_idxs) {
+        av_free(ts->dvb_audio_preselection_idxs);
+        ts->dvb_audio_preselection_idxs = NULL;
+        ts->nb_audio_preselection_idxs = 0;
+    }
     if (ts->private_data != NULL) {
         av_free(ts->private_data);
         ts->private_data = NULL;
