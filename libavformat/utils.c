@@ -3811,7 +3811,7 @@ static int avformat_check_dv_meta_el(AVFormatContext *ic, AVStream *st, const ui
 // The returned value is the AAC frame size with the ADTS header length (regardless of
 //     the presence of the CRC).
 // If headerSize is non-NULL, it will be used to return the size of the header of this ADTS frame.
-static size_t getAdtsFrameLength(AVIOContext *source, off64_t offset, size_t* headerSize) {
+static size_t getAdtsFrameLength(AVIOContext *source, int64_t offset, size_t* headerSize) {
 
     const size_t kAdtsHeaderLengthNoCrc = 7;
     const size_t kAdtsHeaderLengthWithCrc = 9;

@@ -34,7 +34,11 @@
 #include "url.h"
 #include "version.h"
 #include <stdbool.h>
+#ifdef __linux__
+#include <unistd.h>
+#else
 #include <cutils/properties.h>
+#endif
 
 /*
  * An apple http stream consists of a playlist with media segment files,
