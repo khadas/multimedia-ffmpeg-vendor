@@ -33,7 +33,10 @@
 #include "attributes.h"
 #include "error.h"
 #include "avutil.h"
-
+#if CONFIG_USE_CALLSTACK
+#define MEMLEAK_DEBUG_FLAG 0
+void mem_debug_init();
+#endif
 /**
  * @addtogroup lavu_mem
  * Utilities for manipulating memory.

@@ -267,6 +267,13 @@ int ff_combine_frame(ParseContext *pc, int next,
 
     pc->last_index = pc->index;
 
+    size_t min_size = *buf_size + pc->index + AV_INPUT_BUFFER_PADDING_SIZE;
+    min_size = FFMAX(min_size + min_size / 16 + 32, min_size);
+    if ( min_size > 50000000UL) {
+      av_log(NULL, AV_LOG_ERROR, "%s buf_size =%d index=%d \n",__func__,*buf_size,pc->index);
+      return AVERROR(ENOMEM);
+    }
+
     /* copy into buffer end return */
     if (next == END_NOT_FOUND) {
         void *new_buffer = av_fast_realloc(pc->buffer, &pc->buffer_size,

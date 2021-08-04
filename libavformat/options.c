@@ -131,6 +131,9 @@ static void avformat_get_context_defaults(AVFormatContext *s)
 
 AVFormatContext *avformat_alloc_context(void)
 {
+    #if CONFIG_USE_CALLSTACK && MEMLEAK_DEBUG_FLAG
+    mem_debug_init();
+    #endif
     AVFormatContext *ic;
     ic = av_malloc(sizeof(AVFormatContext));
     if (!ic) return ic;

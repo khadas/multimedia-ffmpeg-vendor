@@ -61,6 +61,74 @@ void  free(void *ptr);
 
 #include "mem_internal.h"
 
+#if CONFIG_USE_CALLSTACK
+#include <time.h>
+
+long long getTimestamp();
+void writeMemDebugCallStack(FILE* file, void* ptr, size_t size) ;
+
+static FILE* malloc_debug_file = NULL;
+static FILE* free_debug_file = NULL;
+static int debug_counter = 0;
+void mem_debug_init() {
+#if MEMLEAK_DEBUG_FLAG
+{
+    debug_counter++;
+    av_log(NULL, AV_LOG_ERROR, "%s huangp \n",__func__);
+    if (malloc_debug_file != NULL) {
+        fclose(malloc_debug_file);
+    }
+    //time_t t;
+    char buf[256] = {0};
+    sprintf(buf,"/data/tmp/%d_malloc.log",debug_counter);
+    //time(&t);
+    //ctime_r(&t,buf+8);
+    //strcpy(buf,"_malloc");
+    malloc_debug_file = fopen(buf,"ab+");
+    if (malloc_debug_file == NULL) {
+        abort();
+    }
+}
+{
+    if (free_debug_file != NULL) {
+        fclose(free_debug_file);
+    }
+    //time_t t;
+    char buf[256] = {0};
+    sprintf(buf,"/data/tmp/%d_free.log",debug_counter);
+    //time(&t);
+    //ctime_r(&t,buf+8);
+    //strcpy(buf,"_malloc");
+    free_debug_file = fopen(buf,"ab+");
+    if (free_debug_file == NULL) {
+        abort();
+    }
+}
+#endif
+}
+
+void mem_debug_malloc(void* ptr,size_t size) {
+    if (!malloc_debug_file)
+        return;
+    writeMemDebugCallStack(malloc_debug_file,ptr,size);
+
+}
+void mem_debug_free(void* ptr) {
+    if (!free_debug_file)
+        return;
+    char ptr_str[256]={0};
+    int len = sprintf(ptr_str,"[%lld] %16p\r\n",getTimestamp(),ptr);
+    if (0 > fwrite(ptr_str,1,len,free_debug_file)) {
+        abort();
+    }
+}
+
+
+
+
+#endif
+
+
 #define ALIGN (HAVE_AVX ? 32 : 16)
 
 /* NOTE: if you want to override these functions with your own
@@ -129,6 +197,9 @@ void *av_malloc(size_t size)
     if (ptr)
         memset(ptr, FF_MEMORY_POISON, size);
 #endif
+#if CONFIG_USE_CALLSTACK && (MEMLEAK_DEBUG_FLAG)
+    mem_debug_malloc( ptr, size);
+#endif
     return ptr;
 }
 
@@ -137,12 +208,17 @@ void *av_realloc(void *ptr, size_t size)
     /* let's disallow possibly ambiguous cases */
     if (size > (max_alloc_size - 32))
         return NULL;
-
+    void* newptr = NULL;
 #if HAVE_ALIGNED_MALLOC
-    return _aligned_realloc(ptr, size + !size, ALIGN);
+    newptr = _aligned_realloc(ptr, size + !size, ALIGN);
 #else
-    return realloc(ptr, size + !size);
+    newptr = realloc(ptr, size + !size);
 #endif
+#if CONFIG_USE_CALLSTACK && (MEMLEAK_DEBUG_FLAG)
+        mem_debug_free( ptr);
+        mem_debug_malloc( newptr, size);
+#endif
+    return newptr;
 }
 
 void *av_realloc_f(void *ptr, size_t nelem, size_t elsize)
@@ -203,6 +279,9 @@ int av_reallocp_array(void *ptr, size_t nmemb, size_t size)
 
 void av_free(void *ptr)
 {
+#if CONFIG_USE_CALLSTACK && (MEMLEAK_DEBUG_FLAG)
+    mem_debug_free( ptr);
+#endif
 #if HAVE_ALIGNED_MALLOC
     _aligned_free(ptr);
 #else
