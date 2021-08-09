@@ -370,6 +370,9 @@ int ff_h264_decode_seq_parameter_set(GetBitContext *gb, AVCodecContext *avctx,
     sps->sps_id               = sps_id;
     sps->time_offset_length   = 24;
     sps->profile_idc          = profile_idc;
+    if (avctx != NULL) {
+        avctx->profile = profile_idc;
+    }
     sps->constraint_set_flags = constraint_set_flags;
     sps->level_idc            = level_idc;
     sps->full_range           = -1;
