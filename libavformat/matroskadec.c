@@ -375,6 +375,9 @@ typedef struct MatroskaDemuxContext {
     int64_t last_pos;
     /* file size*/
     int64_t file_size;
+    /* 1 - can seek */
+    /* 0 - can't seek */
+    int64_t can_seek;
 } MatroskaDemuxContext;
 
 typedef struct MatroskaBlock {
@@ -1649,8 +1652,8 @@ static void matroska_execute_seekhead(MatroskaDemuxContext *matroska)
         elem->pos = pos;
 
         // defer cues parsing until we actually need cue data.
-        if (id == MATROSKA_ID_CUES)
-            continue;
+        /*if (id == MATROSKA_ID_CUES)
+            continue;*/
 
         if (matroska_parse_seekhead_entry(matroska, pos) < 0) {
             // mark index as broken
@@ -2579,6 +2582,17 @@ static int matroska_parse_tracks(AVFormatContext *s)
     return 0;
 }
 
+static int matroska_can_seek(AVFormatContext *s) {
+    MatroskaDemuxContext *matroska = s->priv_data;
+    if (matroska->index.nb_elem == 0 &&
+        matroska->cues_parsing_deferred == -1) {
+        av_log(NULL,AV_LOG_ERROR,"unsupported seek funftion. index.nb_elem:%d, seekhead.nb_elem:%d",matroska->index.nb_elem, matroska->seekhead.nb_elem);
+        return 0;
+    }
+    //default seekable true.
+    return 1;
+}
+
 static int matroska_read_header(AVFormatContext *s)
 {
     MatroskaDemuxContext *matroska = s->priv_data;
@@ -2725,6 +2739,7 @@ static int matroska_read_header(AVFormatContext *s)
     matroska_add_index_entries(matroska);
 
     matroska_convert_tags(s);
+    matroska->can_seek = matroska_can_seek(s);
 
     return 0;
 fail:
@@ -4008,6 +4023,7 @@ static int webm_dash_manifest_read_packet(AVFormatContext *s, AVPacket *pkt)
 #define OFFSET(x) offsetof(MatroskaDemuxContext, x)
 static const AVOption options[] = {
     { "live", "flag indicating that the input is a live file that only has the headers.", OFFSET(is_live), AV_OPT_TYPE_BOOL, {.i64 = 0}, 0, 1, AV_OPT_FLAG_DECODING_PARAM },
+    { "can_seek", "can_seek.", OFFSET(can_seek), AV_OPT_TYPE_INT64, {.i64 = 1}, 0, 1, AV_OPT_FLAG_DECODING_PARAM },
     { NULL },
 };
 
@@ -4028,7 +4044,8 @@ AVInputFormat ff_matroska_demuxer = {
     .read_packet    = matroska_read_packet,
     .read_close     = matroska_read_close,
     .read_seek      = matroska_read_seek,
-    .mime_type      = "audio/webm,audio/x-matroska,video/webm,video/x-matroska"
+    .mime_type      = "audio/webm,audio/x-matroska,video/webm,video/x-matroska",
+    .priv_class     = &webm_dash_class,
 };
 
 AVInputFormat ff_webm_dash_manifest_demuxer = {
