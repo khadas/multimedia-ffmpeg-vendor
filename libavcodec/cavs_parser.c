@@ -127,6 +127,30 @@ const uint8_t *find_start_code(const uint8_t * restrict p, const uint8_t *end,
     return p+4;
 }
 
+static void parse_avs_nal_units(AVCodecParserContext *s, const uint8_t *buf, int buf_size, AVCodecContext *avctx)
+{
+    if (buf_size < 5) {
+        return;
+    }
+
+    if (buf[0] == 0x0 && buf[1] == 0x0 && buf[2] == 0x1) {
+        if (buf[3] == (CAVS_START_CODE & 0xff) || buf[3] == (PIC_I_START_CODE & 0xff)) {
+            s->key_frame = 1;
+            s->pict_type = AV_PICTURE_TYPE_I;
+        } else if (buf[3] == (PIC_PB_START_CODE & 0xff)) {
+            s->key_frame = 0;
+            if (buf_size > 9) {
+                int pic_code_type = buf[8] & 0x3;
+                if (pic_code_type == 1 || pic_code_type == 3) {
+                    s->pict_type = AV_PICTURE_TYPE_P;
+                } else {
+                    s->pict_type = AV_PICTURE_TYPE_B;
+                }
+            }
+        }
+    }
+}
+
 static void cavs2video_extract_headers(AVCodecParserContext *s,
                            AVCodecContext *avctx,
                            const uint8_t *buf, int buf_size)
@@ -188,6 +212,8 @@ static int cavsvideo_parse(AVCodecParserContext *s,
             return buf_size;
         }
     }
+    parse_avs_nal_units(s, buf, buf_size, avctx);
+
     *poutbuf = buf;
     *poutbuf_size = buf_size;
     return next;
