@@ -1658,8 +1658,8 @@ const AVOption *av_opt_find2(void *obj, const char *name, const char *unit,
         }
     }
 
-    while (o = av_opt_next(obj, o)) {
-        if (!strcmp(o->name, name) && (o->flags & opt_flags) == opt_flags &&
+    while (o && (o = av_opt_next(obj, o))) {
+        if (o && !strcmp(o->name, name) && (o->flags & opt_flags) == opt_flags &&
             ((!unit && o->type != AV_OPT_TYPE_CONST) ||
              (unit  && o->type == AV_OPT_TYPE_CONST && o->unit && !strcmp(o->unit, unit)))) {
             if (target_obj) {
