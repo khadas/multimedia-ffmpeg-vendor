@@ -59,6 +59,7 @@ typedef struct RTPContext {
     char *sources;
     char *block;
     char *fec_options_str;
+    int64_t rw_timeout;
 } RTPContext;
 
 #define OFFSET(x) offsetof(RTPContext, x)
@@ -74,6 +75,7 @@ static const AVOption options[] = {
     { "write_to_source",    "Send packets to the source address of the latest received packet", OFFSET(write_to_source), AV_OPT_TYPE_BOOL,   { .i64 =  0 },     0, 1,       .flags = D|E },
     { "pkt_size",           "Maximum packet size",                                              OFFSET(pkt_size),        AV_OPT_TYPE_INT,    { .i64 = -1 },    -1, INT_MAX, .flags = D|E },
     { "dscp",               "DSCP class",                                                       OFFSET(dscp),            AV_OPT_TYPE_INT,    { .i64 = -1 },    -1, INT_MAX, .flags = D|E },
+    { "timeout",            "set timeout (in microseconds) of socket I/O operations",           OFFSET(rw_timeout),      AV_OPT_TYPE_INT64,  { .i64 = 30000000 },  -1, INT64_MAX, .flags = D|E },
     { "sources",            "Source list",                                                      OFFSET(sources),         AV_OPT_TYPE_STRING, { .str = NULL },               .flags = D|E },
     { "block",              "Block list",                                                       OFFSET(block),           AV_OPT_TYPE_STRING, { .str = NULL },               .flags = D|E },
     { "fec",                "FEC",                                                              OFFSET(fec_options_str), AV_OPT_TYPE_STRING, { .str = NULL },               .flags = E },
@@ -364,6 +366,9 @@ static int rtp_open(URLContext *h, const char *uri, int flags)
         if (av_find_info_tag(buf, sizeof(buf), "dscp", p)) {
             s->dscp = strtol(buf, NULL, 10);
         }
+        if (av_find_info_tag(buf, sizeof(buf), "timeout", p)) {
+            s->rw_timeout = strtol(buf, NULL, 10);
+        }
         if (av_find_info_tag(buf, sizeof(buf), "sources", p)) {
             av_strlcpy(include_sources, buf, sizeof(include_sources));
 
@@ -380,6 +385,8 @@ static int rtp_open(URLContext *h, const char *uri, int flags)
             block = s->block;
         }
     }
+    if (s->rw_timeout >= 0)
+        h->rw_timeout = s->rw_timeout;
 
     if (s->fec_options_str) {
         p = s->fec_options_str;
@@ -481,6 +488,7 @@ static int rtp_read(URLContext *h, uint8_t *buf, int size)
     int poll_delay = h->flags & AVIO_FLAG_NONBLOCK ? 0 : 100;
     struct sockaddr_storage *addrs[2] = { &s->last_rtp_source, &s->last_rtcp_source };
     socklen_t *addr_lens[2] = { &s->last_rtp_source_len, &s->last_rtcp_source_len };
+    int runs = h->rw_timeout / 1000 / POLLING_TIME;
 
     for(;;) {
         if (ff_check_interrupt(&h->interrupt_callback))
@@ -504,6 +512,8 @@ static int rtp_read(URLContext *h, uint8_t *buf, int size)
                     continue;
                 return len;
             }
+        } else if (n == 0 && h->rw_timeout > 0 && --runs <= 0) {
+            return AVERROR(ETIMEDOUT);
         } else if (n < 0) {
             if (ff_neterrno() == AVERROR(EINTR))
                 continue;
