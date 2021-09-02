@@ -388,8 +388,12 @@ static inline int retry_transfer_wrapper(URLContext *h, uint8_t *buf,
                 if (h->rw_timeout) {
                     if (!wait_since)
                         wait_since = av_gettime_relative();
-                    else if (av_gettime_relative() > wait_since + h->rw_timeout)
-                        return AVERROR(EIO);
+                    else if (av_gettime_relative() > wait_since + h->rw_timeout) {
+                        if (h->prot && h->prot->name && strcmp(h->prot->name, "udp") == 0)
+                            return AVERROR(ETIME);
+                        else
+                            return AVERROR(EIO);
+                    }
                 }
                 av_usleep(1000);
             }
