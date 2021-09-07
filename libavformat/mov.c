@@ -2749,6 +2749,11 @@ static int mov_read_stss(MOVContext *c, AVIOContext *pb, MOVAtom atom)
     }
 
     sc->keyframe_count = i;
+    if (sc->keyframe_count == 1 &&
+        st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
+        av_log(c->fc,AV_LOG_ERROR,"unsupported seek funftion.");
+        c->can_seek = 0;
+    }
 
     if (pb->eof_reached)
         return AVERROR_EOF;
@@ -6853,6 +6858,7 @@ static const AVOption mov_options[] = {
     { "decryption_key", "The media decryption key (hex)", OFFSET(decryption_key), AV_OPT_TYPE_BINARY, .flags = AV_OPT_FLAG_DECODING_PARAM },
     { "enable_drefs", "Enable external track support.", OFFSET(enable_drefs), AV_OPT_TYPE_BOOL,
         {.i64 = 0}, 0, 1, FLAGS },
+    { "can_seek", "can_seek.", OFFSET(can_seek), AV_OPT_TYPE_INT64, {.i64 = 1}, 0, 1, AV_OPT_FLAG_DECODING_PARAM },
 
     { NULL },
 };

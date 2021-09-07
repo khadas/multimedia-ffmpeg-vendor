@@ -270,6 +270,9 @@ typedef struct MOVContext {
     int32_t movie_display_matrix[3][3]; ///< display matrix from mvhd
     MOVPsshInfo *pssh_info;
     unsigned pssh_count;
+    /* 1 - can seek */
+    /* 0 - can't seek */
+    int64_t can_seek;
 } MOVContext;
 
 int ff_mp4_read_descr_len(AVIOContext *pb);
