@@ -36,6 +36,8 @@ typedef struct DCAParseContext {
     unsigned int startpos;
     DCAExssParser exss;
     unsigned int sr_code;
+    int sample_rate;
+    int channels;
 } DCAParseContext;
 
 #define IS_CORE_MARKER(state) \
@@ -204,6 +206,9 @@ static int dca_parse_params(DCAParseContext *pc1, const uint8_t *buf,
         if ((ret = ff_dca_exss_parse(&pc1->exss, buf, buf_size)) < 0)
             return ret;
 
+        pc1->sample_rate = asset->max_sample_rate;
+        pc1->channels = asset->nchannels_total;
+
         if (asset->extension_mask & DCA_EXSS_LBR) {
             if ((ret = init_get_bits8(&gb, buf + asset->lbr_offset, asset->lbr_size)) < 0)
                 return ret;
@@ -305,9 +310,16 @@ static int dca_parse(AVCodecParserContext *s, AVCodecContext *avctx,
     if (!dca_parse_params(pc1, buf, buf_size, &duration, &sample_rate)) {
         if (!avctx->sample_rate)
             avctx->sample_rate = sample_rate;
+        if (!avctx->channels)
+            avctx->channels = pc1->channels;
         s->duration = av_rescale(duration, avctx->sample_rate, sample_rate);
-    } else
+    } else {
+        if (!avctx->sample_rate)
+            avctx->sample_rate = pc1->sample_rate;
+        if (!avctx->channels)
+            avctx->channels = pc1->channels;
         s->duration = 0;
+    }
 
     *poutbuf      = buf;
     *poutbuf_size = buf_size;
