@@ -36,8 +36,6 @@ typedef struct DCAParseContext {
     unsigned int startpos;
     DCAExssParser exss;
     unsigned int sr_code;
-    int sample_rate;
-    int channels;
 } DCAParseContext;
 
 #define IS_CORE_MARKER(state) \
@@ -206,9 +204,6 @@ static int dca_parse_params(DCAParseContext *pc1, const uint8_t *buf,
         if ((ret = ff_dca_exss_parse(&pc1->exss, buf, buf_size)) < 0)
             return ret;
 
-        pc1->sample_rate = asset->max_sample_rate;
-        pc1->channels = asset->nchannels_total;
-
         if (asset->extension_mask & DCA_EXSS_LBR) {
             if ((ret = init_get_bits8(&gb, buf + asset->lbr_offset, asset->lbr_size)) < 0)
                 return ret;
@@ -257,6 +252,14 @@ static int dca_parse_params(DCAParseContext *pc1, const uint8_t *buf,
             return 0;
         }
 
+        if (asset->extension_mask & DCA_EXSS_CORE) {
+            DCAExssParser *exss_parse = &pc1->exss;
+
+            *sample_rate = asset->max_sample_rate;
+            *duration = 512 * (exss_parse->exss_fr_duration_code+1) * exss_parse->ref_clock_code;
+            return 0;
+        }
+
         return AVERROR_INVALIDDATA;
     }
 
@@ -285,6 +288,7 @@ static int dca_parse(AVCodecParserContext *s, AVCodecContext *avctx,
 {
     DCAParseContext *pc1 = s->priv_data;
     ParseContext *pc = &pc1->pc;
+    DCAExssAsset *asset = &pc1->exss.assets[0];
     int next, duration, sample_rate;
 
     if (s->flags & PARSER_FLAG_COMPLETE_FRAMES) {
@@ -310,14 +314,11 @@ static int dca_parse(AVCodecParserContext *s, AVCodecContext *avctx,
     if (!dca_parse_params(pc1, buf, buf_size, &duration, &sample_rate)) {
         if (!avctx->sample_rate)
             avctx->sample_rate = sample_rate;
-        if (!avctx->channels)
-            avctx->channels = pc1->channels;
+
+        if (!avctx->channels && asset->nchannels_total)
+            avctx->channels = asset->nchannels_total;
         s->duration = av_rescale(duration, avctx->sample_rate, sample_rate);
     } else {
-        if (!avctx->sample_rate)
-            avctx->sample_rate = pc1->sample_rate;
-        if (!avctx->channels)
-            avctx->channels = pc1->channels;
         s->duration = 0;
     }
 

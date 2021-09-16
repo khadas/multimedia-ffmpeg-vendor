@@ -413,15 +413,18 @@ int ff_dca_exss_parse(DCAExssParser *s, const uint8_t *data, int size)
         return AVERROR_INVALIDDATA;
     }
 
+    s->ref_clock_code = 0;
+    s->exss_fr_duration_code = 0;
+
     // Per stream static fields presence flag
     if (s->static_fields_present = get_bits1(&s->gb)) {
         int active_exss_mask[8];
 
         // Reference clock code
-        skip_bits(&s->gb, 2);
+        s->ref_clock_code = get_bits(&s->gb, 2);
 
         // Extension substream frame duration
-        skip_bits(&s->gb, 3);
+        s->exss_fr_duration_code = get_bits(&s->gb, 3);
 
         // Timecode presence flag
         if (get_bits1(&s->gb))
@@ -433,6 +436,7 @@ int ff_dca_exss_parse(DCAExssParser *s, const uint8_t *data, int size)
         if (s->npresents > 1) {
             if (s->avctx)
                 avpriv_request_sample(s->avctx, "%d audio presentations", s->npresents);
+
             return AVERROR_PATCHWELCOME;
         }
 
@@ -441,7 +445,12 @@ int ff_dca_exss_parse(DCAExssParser *s, const uint8_t *data, int size)
         if (s->nassets > 1) {
             if (s->avctx)
                 avpriv_request_sample(s->avctx, "%d audio assets", s->nassets);
-            return AVERROR_PATCHWELCOME;
+
+            /* Patch for DTS multi-assets:
+             * Just get the info from assets[0] (samplerate and channel count).
+             * Ignore the LanguageDescriptor, InfoTextString...
+             */
+            // return AVERROR_PATCHWELCOME;
         }
 
         // Active extension substream mask for audio presentation
