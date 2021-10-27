@@ -1891,7 +1891,7 @@ int ff_parse_mpeg2_descriptor(AVFormatContext *fc, AVStream *st, int stream_type
                     av_log(fc, AV_LOG_ERROR, "0x56 i:%d pages_number:%d, type:0x%x, magazine:0x%x, pagenum:0x%x\n",
                           i, pages_number, p_decoded->p_pages[i].i_teletext_type, p_decoded->p_pages[i].i_teletext_magazine_number, p_decoded->p_pages[i].i_teletext_page_number);
 
-                    sprintf(teletext_info + (i * strlen(teletext_info)), "%d,%d,%d#",
+                    sprintf(teletext_info + strlen(teletext_info), "%d,%d,%d#",
                           p_decoded->p_pages[i].i_teletext_type, p_decoded->p_pages[i].i_teletext_magazine_number, p_decoded->p_pages[i].i_teletext_page_number);
                     /*av_dict_set(&st->metadata, "teletext-type", p_decoded->p_pages[i].i_teletext_type, 0);
                       av_dict_set(&st->metadata, "page-num", p_decoded->p_pages[i].i_teletext_magazine_number, 0);
