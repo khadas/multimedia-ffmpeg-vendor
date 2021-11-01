@@ -289,7 +289,6 @@ FFMPEG_LIBAVCODEC_SRC_FILES := \
     libavcodec/dss_sp.c \
     libavcodec/dstdec.c \
     libavcodec/dump_extradata_bsf.c \
-    libavcodec/dv.c \
     libavcodec/dv_profile.c \
     libavcodec/dvaudio_parser.c \
     libavcodec/dvaudiodec.c \
@@ -298,11 +297,9 @@ FFMPEG_LIBAVCODEC_SRC_FILES := \
     libavcodec/dvbsubdec.c \
     libavcodec/dvd_nav_parser.c \
     libavcodec/dvdata.c \
-    libavcodec/dvdec.c \
     libavcodec/dvdsub_parser.c \
     libavcodec/dvdsubdec.c \
     libavcodec/dvdsubenc.c \
-    libavcodec/dvenc.c \
     libavcodec/dxtory.c \
     libavcodec/dxv.c \
     libavcodec/eacmv.c \
@@ -1062,10 +1059,8 @@ FFMPEG_LIBAVFORMAT_SRC_FILES := \
     libavformat/dsicin.c \
     libavformat/dss.c \
     libavformat/dump.c \
-    libavformat/dv.c \
     libavformat/dvbsub.c \
     libavformat/dvbtxt.c \
-    libavformat/dvenc.c \
     libavformat/dxa.c \
     libavformat/eacdata.c \
     libavformat/electronicarts.c \

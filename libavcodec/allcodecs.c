@@ -167,7 +167,6 @@ static void register_all(void)
     REGISTER_ENCDEC (DPX,               dpx);
     REGISTER_DECODER(DSICINVIDEO,       dsicinvideo);
     REGISTER_DECODER(DVAUDIO,           dvaudio);
-    REGISTER_ENCDEC (DVVIDEO,           dvvideo);
     REGISTER_DECODER(DXA,               dxa);
     REGISTER_DECODER(DXTORY,            dxtory);
     REGISTER_DECODER(DXV,               dxv);

@@ -109,7 +109,6 @@ static void register_all(void)
     REGISTER_DEMUXER (DSS,              dss);
     REGISTER_MUXDEMUX(DTS,              dts);
     REGISTER_DEMUXER (DTSHD,            dtshd);
-    REGISTER_MUXDEMUX(DV,               dv);
     REGISTER_DEMUXER (DVBSUB,           dvbsub);
     REGISTER_DEMUXER (DVBTXT,           dvbtxt);
     REGISTER_DEMUXER (DXA,              dxa);

@@ -32,7 +32,6 @@
 
 #include "avio.h"
 #include "internal.h"
-#include "dv.h"
 
 /* isom.c */
 extern const AVCodecTag ff_mp4_obj_type[];
@@ -229,7 +228,6 @@ typedef struct MOVContext {
     int trak_index;       ///< Index of the current 'trak'
     char **meta_keys;
     unsigned meta_keys_count;
-    DVDemuxContext *dv_demux;
     AVFormatContext *dv_fctx;
     int isom;             ///< 1 if file is ISO Media (mp4/3gp)
     MOVFragment fragment; ///< current fragment in moof atom

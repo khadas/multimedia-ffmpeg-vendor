@@ -2364,22 +2364,6 @@ static int mov_finalize_stsd_codec(MOVContext *c, AVIOContext *pb,
 
     /* special codec parameters handling */
     switch (st->codecpar->codec_id) {
-#if CONFIG_DV_DEMUXER
-    case AV_CODEC_ID_DVAUDIO:
-        c->dv_fctx = avformat_alloc_context();
-        if (!c->dv_fctx) {
-            av_log(c->fc, AV_LOG_ERROR, "dv demux context alloc error\n");
-            return AVERROR(ENOMEM);
-        }
-        c->dv_demux = avpriv_dv_init_demux(c->dv_fctx);
-        if (!c->dv_demux) {
-            av_log(c->fc, AV_LOG_ERROR, "dv demux context init error\n");
-            return AVERROR(ENOMEM);
-        }
-        sc->dv_audio_container = 1;
-        st->codecpar->codec_id    = AV_CODEC_ID_PCM_S16LE;
-        break;
-#endif
     /* no ifdef since parameters are always those */
     case AV_CODEC_ID_QCELP:
         st->codecpar->channels = 1;
@@ -6045,11 +6029,6 @@ static int mov_read_close(AVFormatContext *s)
         av_freep(&sc->spherical);
     }
 
-    if (mov->dv_demux) {
-        avformat_free_context(mov->dv_fctx);
-        mov->dv_fctx = NULL;
-    }
-
     if (mov->meta_keys) {
         for (i = 1; i < mov->meta_keys_count; i++) {
             av_freep(&mov->meta_keys[i]);
@@ -6607,16 +6586,6 @@ static int mov_read_packet(AVFormatContext *s, AVPacket *pkt)
                 sc->has_palette = 0;
             }
         }
-#if CONFIG_DV_DEMUXER
-        if (mov->dv_demux && sc->dv_audio_container) {
-            avpriv_dv_produce_packet(mov->dv_demux, pkt, pkt->data, pkt->size, pkt->pos);
-            av_freep(&pkt->data);
-            pkt->size = 0;
-            ret = avpriv_dv_get_packet(mov->dv_demux, pkt);
-            if (ret < 0)
-                return ret;
-        }
-#endif
         if (st->codecpar->codec_id == AV_CODEC_ID_MP3 && !st->need_parsing && pkt->size > 4) {
             if (ff_mpa_check_header(AV_RB32(pkt->data)) < 0)
                 st->need_parsing = AVSTREAM_PARSE_FULL;
