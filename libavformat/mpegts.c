@@ -469,7 +469,7 @@ static MpegTSFilter *mpegts_open_filter(MpegTSContext *ts, unsigned int pid,
 {
     MpegTSFilter *filter;
 
-    av_log(ts->stream, AV_LOG_TRACE, "Filter: pid=0x%x type=%d\n", pid, type);
+    av_log(ts->stream, AV_LOG_FATAL, "Filter: pid=0x%x type=%d\n", pid, type);
 
     if (pid >= NB_PID_MAX || ts->pids[pid])
         return NULL;
@@ -931,6 +931,14 @@ static int mpegts_set_stream_info(AVStream *st, PESContext *pes,
         st->codecpar->codec_type = AVMEDIA_TYPE_DATA;
         st->codecpar->codec_id   = AV_CODEC_ID_BIN_DATA;
         st->request_probe = AVPROBE_SCORE_STREAM_RETRY / 5;
+    }
+    if ((st->request_probe> 0 && st->request_probe < AVPROBE_SCORE_STREAM_RETRY / 5) &&
+        st->probe_packets > 0 &&
+        stream_type == 0x86) {
+        st->codecpar->codec_type = AVMEDIA_TYPE_DATA;
+        st->codecpar->codec_id   = AV_CODEC_ID_SCTE_35;
+        st->request_probe = AVPROBE_SCORE_STREAM_RETRY / 5;
+        av_log(NULL, AV_LOG_FATAL,"set stream info for scte-35\n");
     }
 
     /* queue a context update if properties changed */
@@ -2293,6 +2301,7 @@ static void pmt_cb(MpegTSFilter *filter, const uint8_t *section, int section_len
                 if (stream_type == 0x86 && prog_reg_desc == AV_RL32("CUEI")) {
                     mpegts_find_stream_type(st, stream_type, SCTE_types);
                     mpegts_open_section_filter(ts, pid, scte_data_cb, ts, 1);
+                    av_log(ts->stream, AV_LOG_FATAL, "###scte 35 pid:%d\n", pid);
                 }
             }
         }
