@@ -2648,6 +2648,28 @@ static int has_duration(AVFormatContext *ic)
     return 0;
 }
 
+static int has_bit_rate(AVFormatContext *ic)
+{
+    int i;
+    AVStream *st;
+
+    if (ic->bit_rate > 0)
+        return 1;
+
+    for (i = 0; i < ic->nb_streams; i++) {
+        st = ic->streams[i];
+        if (st->codecpar->bit_rate > 0 || st->internal->avctx->bit_rate > 0) {
+            return 1;
+        } else if (st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO && st->codec_info_nb_frames > 1) {
+            // If we have a videostream with packets but without a bitrate
+            // then consider the sum not known
+            return 0;
+        }
+    }
+
+    return 0;
+}
+
 /**
  * Estimate the stream timings from the one of each components.
  *
@@ -3138,6 +3160,62 @@ skip_duration_calc:
             st->pts_buffer[j] = AV_NOPTS_VALUE;
     }
 }
+
+/* only usable for short raw streams */
+static void estimate_timings_from_frame_rate(AVFormatContext *ic, int64_t old_offset)
+{
+    int i, show_warning = 0;
+    int num, den, ret;
+    AVStream *st;
+    AVPacket pkt1, *pkt = &pkt1;
+
+    /* flush packet queue */
+    flush_packet_queue(ic);
+
+    for (i = 0; i < ic->nb_streams; i++) {
+        st = ic->streams[i];
+        if (st->parser) {
+            av_parser_close(st->parser);
+            st->parser = NULL;
+        }
+    }
+
+    avio_seek(ic->pb, 0, SEEK_SET);
+    for (;;) {
+        do {
+            ret = av_read_frame(ic, pkt);
+        } while (ret == AVERROR(EAGAIN));
+        if (ret != 0)
+            break;
+
+        st = ic->streams[pkt->stream_index];
+        if (pkt->duration == 0) {
+            ff_compute_frame_duration(ic, &num, &den, st, st->parser, pkt);
+            if (den && num) {
+                pkt->duration = av_rescale_rnd(1,
+                                   num * (int64_t) st->time_base.den,
+                                   den * (int64_t) st->time_base.num,
+                                   AV_ROUND_DOWN);
+            }
+        }
+
+        if (pkt->duration > 0) {
+            if (st->duration <= 0) {
+                st->duration = pkt->duration;
+            } else {
+                st->duration += pkt->duration;
+            }
+            show_warning = 1;
+        }
+        av_packet_unref(pkt);
+    }
+
+    fill_all_stream_timings(ic);
+    avio_seek(ic->pb, old_offset, SEEK_SET);
+    if (show_warning)
+        av_log(ic, AV_LOG_WARNING, "Estimating duration from frame rate, this may be inaccurate\n");
+}
+
 static void estimate_timings(AVFormatContext *ic, int64_t old_offset)
 {
     int64_t file_size;
@@ -3161,10 +3239,14 @@ static void estimate_timings(AVFormatContext *ic, int64_t old_offset)
          * the components */
         fill_all_stream_timings(ic);
         ic->duration_estimation_method = AVFMT_DURATION_FROM_STREAM;
-    } else {
+    } else if (has_bit_rate(ic)) {
         /* less precise: use bitrate info */
         estimate_timings_from_bit_rate(ic);
         ic->duration_estimation_method = AVFMT_DURATION_FROM_BITRATE;
+    } else if ((!strcmp(ic->iformat->name, "h264")) && (file_size < 16 * 1024 * 1024)) {
+        /* less precise: use frame rate info */
+        estimate_timings_from_frame_rate(ic, old_offset);
+        ic->duration_estimation_method = AVFMT_DURATION_FROM_FRAMERATE;
     }
 
     update_stream_timings(ic);
