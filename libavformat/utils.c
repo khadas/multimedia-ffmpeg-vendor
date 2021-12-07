@@ -1492,6 +1492,14 @@ static int parse_packet(AVFormatContext *s, AVPacket *pkt, int stream_index)
             av_log(s, AV_LOG_ERROR, "hevc_parser cannot get the key frame type of hevc!index:%d\n",pkt->stream_index);
         }
 
+        if (!strcmp(s->iformat->name, "mpegts") &&
+            (out_pkt.flags & AV_PKT_FLAG_KEY) &&
+            out_pkt.pts != AV_NOPTS_VALUE) {
+            ff_reduce_index(s, st->index);
+            av_add_index_entry(st, out_pkt.pos, out_pkt.pts,
+                               0, 0, AVINDEX_KEYFRAME);
+        }
+
         compute_pkt_fields(s, st, st->parser, &out_pkt, next_dts, next_pts);
 
         ret = add_to_pktbuf(&s->internal->parse_queue, &out_pkt,
@@ -2889,6 +2897,14 @@ static void estimate_timings_from_pts(AVFormatContext *ic, int64_t old_offset)
                 break;
             read_size += pkt->size;
             st         = ic->streams[pkt->stream_index];
+            if (!strcmp(ic->iformat->name, "mpegts") &&
+                st->codecpar->codec_type == AVMEDIA_TYPE_AUDIO &&
+                (pkt->pts != AV_NOPTS_VALUE ||
+                pkt->dts != AV_NOPTS_VALUE)) {
+                ff_reduce_index(ic, st->index);
+                av_add_index_entry(st, pkt->pos, ((pkt->pts == AV_NOPTS_VALUE) ? pkt->dts : pkt->pts),
+                                   0, 0, AVINDEX_KEYFRAME);
+            }
             if (pkt->pts != AV_NOPTS_VALUE &&
                 pkt->pts <= AV_BIGEST_PTS_VALUE &&
                 (st->start_time != AV_NOPTS_VALUE ||

@@ -329,6 +329,9 @@ static inline int parse_nal_units(AVCodecParserContext *s, const uint8_t *buf,
             s->format       = ps->sps->pix_fmt;
             avctx->profile  = ps->sps->ptl.general_ptl.profile_idc;
             avctx->level    = ps->sps->ptl.general_ptl.level_idc;
+            avctx->width    = ps->sps->width;
+            avctx->height   = ps->sps->height;
+            avctx->pix_fmt  = ps->sps->pix_fmt;
 
             if (ps->vps->vps_timing_info_present_flag) {
                 num = ps->vps->vps_num_units_in_tick;
