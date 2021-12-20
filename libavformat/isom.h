@@ -265,6 +265,7 @@ typedef struct MOVContext {
     uint8_t *decryption_key;
     int decryption_key_len;
     int enable_drefs;
+    int partitioned_frame;
     int32_t movie_display_matrix[3][3]; ///< display matrix from mvhd
     MOVPsshInfo *pssh_info;
     unsigned pssh_count;

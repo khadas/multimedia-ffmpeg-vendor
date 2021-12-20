@@ -4403,6 +4403,11 @@ FF_ENABLE_DEPRECATION_WARNINGS
     // close codecs which were opened in try_decode_frame()
     for (i = 0; i < ic->nb_streams; i++) {
         st = ic->streams[i];
+        if (st->internal->avctx->codec_id == AV_CODEC_ID_MPEG4) {
+            int64_t codec_partitioned = 0 ;
+            av_opt_get_int(st->internal->avctx->priv_data, "partitioned_frame", 0, &codec_partitioned);
+            av_opt_set_int(ic->priv_data, "partitioned_frame", codec_partitioned, 0);
+        }
         avcodec_close(st->internal->avctx);
     }
 

@@ -1314,8 +1314,10 @@ int attribute_align_arg avcodec_open2(AVCodecContext *avctx, const AVCodec *code
                 av_opt_set_defaults(avctx->priv_data);
             }
         }
-        if (codec->priv_class && (ret = av_opt_set_dict(avctx->priv_data, &tmp)) < 0)
+        if (codec->priv_class && (ret = av_opt_set_dict(avctx->priv_data, &tmp)) < 0) {
+            ret = AVERROR(EINVAL);
             goto free_and_end;
+        }
     } else {
         avctx->priv_data = NULL;
     }
@@ -1709,8 +1711,7 @@ free_and_end:
     if (avctx->codec &&
         (avctx->codec->caps_internal & FF_CODEC_CAP_INIT_CLEANUP))
         avctx->codec->close(avctx);
-
-    if (codec->priv_class && codec->priv_data_size)
+   if (codec->priv_class && codec->priv_data_size)
         av_opt_free(avctx->priv_data);
     av_opt_free(avctx);
 
@@ -1719,7 +1720,6 @@ FF_DISABLE_DEPRECATION_WARNINGS
     av_frame_free(&avctx->coded_frame);
 FF_ENABLE_DEPRECATION_WARNINGS
 #endif
-
     av_dict_free(&tmp);
     av_freep(&avctx->priv_data);
     if (avctx->internal) {
@@ -3104,7 +3104,8 @@ av_cold int avcodec_close(AVCodecContext *avctx)
     if (avctx->priv_data && avctx->codec && avctx->codec->priv_class)
         av_opt_free(avctx->priv_data);
     av_opt_free(avctx);
-    av_freep(&avctx->priv_data);
+    if (avctx->priv_data)
+       av_freep(&avctx->priv_data);
     if (av_codec_is_encoder(avctx->codec)) {
         av_freep(&avctx->extradata);
 #if FF_API_CODED_FRAME
