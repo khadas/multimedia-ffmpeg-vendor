@@ -2460,7 +2460,12 @@ static int seek_frame_generic(AVFormatContext *s, int stream_index,
         if (st->nb_index_entries) {
             av_assert0(st->index_entries);
             ie = &st->index_entries[st->nb_index_entries - 1];
-            if ((ret = avio_seek(s->pb, ie->pos, SEEK_SET)) < 0)
+            if (s->iformat && s->iformat->name &&
+                strstr(s->iformat->name,"mov,mp4,m4a,3gp,3g2,mj2")) {
+                ret = s->iformat->read_seek(s, stream_index, ie->timestamp, AVSEEK_FLAG_ANY) ;
+                if (ret < 0)
+                    return ret;
+            } else if ((ret = avio_seek(s->pb, ie->pos, SEEK_SET)) < 0)
                 return ret;
             ff_update_cur_dts(s, st, ie->timestamp);
         } else {
