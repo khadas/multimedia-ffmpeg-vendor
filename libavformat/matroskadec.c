@@ -349,6 +349,7 @@ typedef struct MatroskaDemuxContext {
     AVPacket *prev_pkt;
 
     int done;
+    int invalid_data;
 
     /* What to skip before effectively reading a packet. */
     int skip_to_keyframe;
@@ -1251,7 +1252,12 @@ static int ebml_parse_elem(MatroskaDemuxContext *matroska,
     default:
         if (ffio_limit(pb, length) != length)
             return AVERROR(EIO);
-        return avio_skip(pb, length) < 0 ? AVERROR(EIO) : 0;
+        res = avio_skip(pb, length) < 0 ? AVERROR(EIO) : 0;
+        if (!res && !id && matroska->current_id != EBML_ID_VOID && matroska->current_id != EBML_ID_CRC32
+                && (matroska->current_cluster_num_blocks == matroska->current_cluster.blocks.nb_elem))
+            matroska->invalid_data = 1;
+        else
+            matroska->invalid_data = 0;
     }
     if (res == AVERROR_INVALIDDATA)
         av_log(matroska->ctx, AV_LOG_ERROR, "Invalid element\n");
@@ -3573,7 +3579,8 @@ static int matroska_read_packet(AVFormatContext *s, AVPacket *pkt)
         if (matroska->done) {
             return (ret < 0) ? ret : AVERROR_EOF;
         }
-        if (matroska_parse_cluster(matroska) < 0)
+        matroska->invalid_data = 0;
+        if (matroska_parse_cluster(matroska) < 0 || matroska->invalid_data == 1)
             ret = matroska_resync(matroska, pos);
     }
     return ret;
