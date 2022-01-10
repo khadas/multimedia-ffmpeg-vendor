@@ -672,7 +672,11 @@ static int64_t hls_seek_ext(URLContext *h, int64_t off, int whence)
           s->seg_hd = NULL;
        }
     }
-    if ((off == 0) || (s->n_segments == 1))
+    if (off == 0 && whence == SEEK_SET)
+    {
+        s->cur_seq_no = s->start_seq_no;
+    }
+    else if ((off == 0) || (s->n_segments == 1))
     {
         if (s->finished)
             s->cur_seq_no = s->start_seq_no;
