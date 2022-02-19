@@ -1802,18 +1802,13 @@ static int mov_read_glbl(MOVContext *c, AVIOContext *pb, MOVAtom atom)
     return 0;
 }
 
-/**
- * This function reads atom content and puts data in extradata without tag
- * nor size unlike mov_read_extradata.
- */
-static int mov_read_dvcc(MOVContext *c, AVIOContext *pb, MOVAtom atom)
-{
+static int mov_read_dvcC_dvvC_dvwC(MOVContext *c, AVIOContext *pb, MOVAtom atom, int dv_box_type) {
     AVStream *st;
     int ret;
     uint8_t config_data[64];
     int i = 0;
 
-    av_log(c, AV_LOG_VERBOSE, "mov_read_dvcc:%d\n", atom.size);
+    av_log(c,AV_LOG_INFO,"[%s][%d]",__FUNCTION__,__LINE__);
 
     if (c->fc->nb_streams < 1)
         return 0;
@@ -1827,12 +1822,8 @@ static int mov_read_dvcc(MOVContext *c, AVIOContext *pb, MOVAtom atom)
     if (config_data[0] != 1 || config_data[1] != 0)
         return 0;
 
+    // profile == (0, 1, 9) --> AVC; profile = (2,3,4,5,6,7,8) --> HEVC; profile == (10) --> AV01;
     uint8_t profile = config_data[2] >> 1;
-    // profile == (0, 1, 9) --> AVC; profile = (2,3,4,5,6,7,8) --> HEVC;
-    if (profile > 9) {
-        av_log(c, AV_LOG_ERROR, "profile error:%d\n", profile);
-        return 0;
-    }
 
     uint8_t level = ((config_data[2] & 0x1) << 5) | ((config_data[3] >> 3) & 0x1f);
 
@@ -1845,9 +1836,8 @@ static int mov_read_dvcc(MOVContext *c, AVIOContext *pb, MOVAtom atom)
     if (atom.size >= 4) {
         bl_compatibility_id = (int32_t)(config_data[4] >> 4);
     }
-    av_log(c, AV_LOG_INFO, "profile:%d,level:%d bl_compatibility_id:%d\n", profile, level, bl_compatibility_id);
 
-    st->codec->has_dolby_vision_config_box = 1;
+    st->codec->has_dolby_vision_config_box = dv_box_type;
     st->codec->dolby_vision_profile = profile;
     st->codec->dolby_vision_level = level;
 
@@ -1857,11 +1847,91 @@ static int mov_read_dvcc(MOVContext *c, AVIOContext *pb, MOVAtom atom)
         st->codec->dolby_vision_rpu_assoc = 0;
     }
 
-    if (profile == 8 || profile == 9) {
-        st->codec->dolby_vision_bl_compat_id = bl_compatibility_id;
+    st->codec->dolby_vision_bl_compat_id = bl_compatibility_id;
+
+/*
+Expected results are:
+• If the test vector (MP4) carries an undefined/unknown Base Layer Signal Compatibility ID (dv_bl_signal_
+    compatibility_id), the device under test rejects the playback.
+• If the test vector (MP4) is of an undefined/unknown Dolby Vision profile, but its Base Layer Signal
+    Compatibility ID (dv_bl_signal_compatibility_id) is valid, the device under test plays the content
+    properly and TV displays in Dolby Vision picture mode.
+    Note: Level 11 metadata changes when the embedded label on the left side of the test pattern
+    changes.
+• If the Dolby Vision configuration box contains unknown elements (reserved fields with non-zero value),
+    the device under test ignores the unknown elements properly and play the MP4 test vector properly and
+    TV displays in Dolby Vision picture mode.
+*/
+
+    if (bl_compatibility_id != 0 &&
+        bl_compatibility_id != 1 &&
+        bl_compatibility_id != 2 &&
+        bl_compatibility_id != 4 &&
+        bl_compatibility_id != 6
+        ) {
+        /*
+         *0  -- None, Dolby Vision proprietary 10-bit
+         *1  -- CTA HDR10, as specified by EBU TR 038: HDR10, specifies the use of the perceptual quantization
+                electro-optical transfer function (EOTF) (SMPTE ST 2084) with 10-bit quantization, an ITU-R BT.2020
+                color space, Mastering Display Color Volume as specified in SMPTE ST 2086, and optional static
+                metadata parameters maximum frame-average light level/maximum content light level (MaxFALL/
+                MaxCLL). It uses a limited-range video signal. It is referred to as PQ10 when the static metadata are
+                not used, as might be the case for a live application. Additionally, for Dolby Vision systems, P3 color
+                gamut information is sent using the BT.2020 container. Also, it uses YCbCr 4:2:0 sampling.
+                We strongly recommend that bitstreams with a cross-compatibility ID of 1 include ST 2086 metadata
+                in an MPEG SEI message to facilitate broader applications of the bitstreams (for example,
+                transmission over ATSC 3.0).
+                ITU-R BT.2100 provides an additional specification of the EOTF, color subsampling, and signal range.
+         *2  -- SDR: BT.1886, ITU-R BT.709, YCbCr 4:2:0
+         *3  -- Reserved
+         *4  -- ITU-R BT.2100 provides an additional specification of the transfer characteristic, color subsampling,
+                    and signal range.
+                For certain broadcast and mobile systems, a transfer characteristic VUI value of 18 may provide
+                    base-layer compatibility that works best with certain classes of devices. This uses a BT.2100
+                    gamut in ITU-R BT.2020, NCL Y’CbCr 4:2:0, and assumes non-SDR backward-compatible HLG
+                    signaling, as defined in H.265, ITU-R BT.2100, ATSC3, and ARIB STD-B67. Default assumptions:
+                    peak luminance of 1,000 cd/m2
+                    , and gamma as specified in BT.2100. The recommended chroma
+                    sample location type VUI is 2 (top-left).
+                For other broadcasts systems, a transfer characteristic VUI value of 14, as per ETSI TS 101 154,
+                    v2.5.1 (2019-01) and subsequent versions (and optionally 1, 6, or 15) may provide the best
+                    baselayer SDR backward-compatible HLG signaling when used with the alternative_transfer_
+                    characteristic SEI message, at every random access point, with the preferred_transfer_
+                    function set to 18, as per ETSI TS 101 154, v2.5.1. Note that ITU-R BT.2390 defines a bridge point
+                    for translation of PQ and HLG at a luminance of 1,000 cd/m2
+                    . The recommended chroma sample
+                    location type VUI is 0 (center-left).
+         *5  -- Reserved
+         *6  -- Ultra HD Blu-ray Disc HDR (per Blu-ray Disc Association standard)
+         *7  -- Reserved
+         *15 -- Reserved
+         */
+        av_log(c, AV_LOG_ERROR, "[%s][%d] profile:%d,level:%d bl_compatibility_id:%d\n",__FUNCTION__,__LINE__, profile, level, bl_compatibility_id);
+        st->codec->has_dolby_vision_config_box = AV_DV_BOX_TYPE_ERROR;
+        return 0;
     }
 
     return 0;
+}
+
+static int mov_read_dvwC(MOVContext *c, AVIOContext *pb, MOVAtom atom) {
+    return mov_read_dvcC_dvvC_dvwC(c, pb, atom, AV_DV_BOX_TYPE_DVWC);
+}
+/**
+ * This function reads atom content and puts data in extradata without tag
+ * nor size unlike mov_read_extradata.
+ */
+static int mov_read_dvvC(MOVContext *c, AVIOContext *pb, MOVAtom atom) {
+    return mov_read_dvcC_dvvC_dvwC(c, pb, atom, AV_DV_BOX_TYPE_DVVC);
+}
+
+/**
+ * This function reads atom content and puts data in extradata without tag
+ * nor size unlike mov_read_extradata.
+ */
+
+static int mov_read_dvcC(MOVContext *c, AVIOContext *pb, MOVAtom atom) {
+    return mov_read_dvcC_dvvC_dvwC(c, pb, atom, AV_DV_BOX_TYPE_DVCC);
 }
 
 /**
@@ -5550,7 +5620,7 @@ static const MOVParseTableEntry mov_default_parse_table[] = {
 { MKTAG('m','v','h','d'), mov_read_mvhd },
 { MKTAG('S','M','I',' '), mov_read_svq3 },
 { MKTAG('a','l','a','c'), mov_read_alac }, /* alac specific atom */
-{ MKTAG('a','v','c','C'), mov_read_glbl },
+{ MKTAG('a','v','c','C'), mov_read_glbl },//avcC
 { MKTAG('p','a','s','p'), mov_read_pasp },
 { MKTAG('s','i','d','x'), mov_read_sidx },
 { MKTAG('s','t','b','l'), mov_read_default },
@@ -5585,7 +5655,7 @@ static const MOVParseTableEntry mov_default_parse_table[] = {
 { MKTAG('c','h','a','n'), mov_read_chan }, /* channel layout */
 { MKTAG('d','v','c','1'), mov_read_dvc1 },
 { MKTAG('s','b','g','p'), mov_read_sbgp },
-{ MKTAG('h','v','c','C'), mov_read_glbl },
+{ MKTAG('h','v','c','C'), mov_read_glbl },//hvcC
 { MKTAG('u','u','i','d'), mov_read_uuid },
 { MKTAG('C','i','n', 0x8e), mov_read_targa_y216 },
 { MKTAG('f','r','e','e'), mov_read_free },
@@ -5598,9 +5668,10 @@ static const MOVParseTableEntry mov_default_parse_table[] = {
 { MKTAG('s','t','3','d'), mov_read_st3d }, /* stereoscopic 3D video box */
 { MKTAG('s','v','3','d'), mov_read_sv3d }, /* spherical video box */
 { MKTAG('I','D','3','2'), mov_read_id32 }, /* id32 video box */
-{ MKTAG('d','v','c','C'), mov_read_dvcc }, /* Dolby Vision configuration box*/
-{ MKTAG('d','v','v','C'), mov_read_dvcc }, /* Dolby Vision configuration box*/
+{ MKTAG('d','v','c','C'), mov_read_dvcC }, /* Dolby Vision configuration box*/
+{ MKTAG('d','v','v','C'), mov_read_dvvC }, /* Dolby Vision configuration box*/
 { MKTAG('p','s','s','h'), mov_read_pssh }, /* Dolby Vision configuration box*/
+{ MKTAG('d','v','w','C'), mov_read_dvwC }, /* Dolby Vision configuration box*/
 
 
 { 0, NULL }
@@ -5674,7 +5745,9 @@ static int mov_read_default(MOVContext *c, AVIOContext *pb, MOVAtom atom)
                 parse = mov_default_parse_table[i].parse;
                 break;
             }
-
+        if (!parse)
+            av_log(c->fc,AV_LOG_WARNING,"[%s][%d] unknown mov table entry: %c%c%c%c",__FUNCTION__,__LINE__,
+                    (a.type>>24)&0xff,(a.type>>16)&0xff,(a.type>>8)&0xff,a.type&0xff);
         // container is user data
         if (!parse && (atom.type == MKTAG('u','d','t','a') ||
                        atom.type == MKTAG('i','l','s','t')))

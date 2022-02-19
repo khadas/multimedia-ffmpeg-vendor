@@ -1710,6 +1710,12 @@ enum AVFieldOrder {
     AV_FIELD_BT,          //< Bottom coded first, top displayed first
 };
 
+#define    AV_DV_BOX_TYPE_ERROR  (-1)
+#define    AV_DV_BOX_TYPE_UNKNOWN (0)
+#define    AV_DV_BOX_TYPE_DVVC (1)
+#define    AV_DV_BOX_TYPE_DVCC (2)
+#define    AV_DV_BOX_TYPE_DVWC (3)
+
 /**
  * main external API structure.
  * New fields can be added to the end with minor version bumps.
