@@ -1766,14 +1766,14 @@ static int mpegts_add_dvb_audio_preselection(MpegTSContext *ts,AVStream *st,unsi
                     ,stream_index_[0],stream_index_[1],stream_index_[2],stream_index_[3]
                     ,len_[0],len_[1],len_[2],len_[3]);
     int new_len = len + ts->dvb_audio_preselection_length;
-    ts->dvb_audio_preselection = av_realloc(ts->dvb_audio_preselection, new_len);
+    ts->dvb_audio_preselection = av_realloc(ts->dvb_audio_preselection, (new_len + 8));
     ts->dvb_audio_preselection_idxs = (unsigned int *)av_realloc((void*)ts->dvb_audio_preselection_idxs, (ts->nb_audio_preselection_idxs+1)*sizeof(int));
     memcpy(ts->dvb_audio_preselection+ts->dvb_audio_preselection_length,
-            stream_index_, sizeof(int));//stream index
-    ts->dvb_audio_preselection_length += sizeof(int);
+            stream_index_, 4);//stream index
+    ts->dvb_audio_preselection_length += 4;
     memcpy(ts->dvb_audio_preselection+ts->dvb_audio_preselection_length,
-            len_, sizeof(int));//real data len
-    ts->dvb_audio_preselection_length += sizeof(int);
+            len_, 4);//real data len
+    ts->dvb_audio_preselection_length += 4;
     memcpy(ts->dvb_audio_preselection+ts->dvb_audio_preselection_length,
             data, len);//data
     ts->dvb_audio_preselection_length += len;
