@@ -2589,6 +2589,15 @@ static int matroska_can_seek(AVFormatContext *s) {
         av_log(NULL,AV_LOG_ERROR,"unsupported seek funftion. index.nb_elem:%d, seekhead.nb_elem:%d",matroska->index.nb_elem, matroska->seekhead.nb_elem);
         return 0;
     }
+
+    //cues entries num < 2 means unsupported seek funftion,
+    //s->streams[0]->nb_index_entries = matroska->index.nb_elem < 2 ? 0 : matroska->index.nb_elem.
+    if (s->streams[0]->nb_index_entries == 0) {
+        av_log(NULL,AV_LOG_ERROR,"unsupported seek funftion. nb_index_entries:%d, index.nb_elem:%d",
+            s->streams[0]->nb_index_entries, matroska->index.nb_elem);
+        return 0;
+    }
+
     //default seekable true.
     return 1;
 }
