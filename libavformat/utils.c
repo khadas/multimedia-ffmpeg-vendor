@@ -4432,8 +4432,14 @@ FF_ENABLE_DEPRECATION_WARNINGS
             if (st->info->codec_info_duration_fields &&
                 !st->avg_frame_rate.num &&
                 st->info->codec_info_duration) {
-                int best_fps      = 0;
+                int best_fps = 0;
+                int framerate_error = 0;
+                double error = 0;
                 double best_error = 0.01;
+                double match_error = 0.03;
+                //not all, but only check for similar frame rate.
+                const double std_framerate[] = {23.976, 24, 25, 29.970, 30, 59.940, 60, 120};
+
 
                 if (st->info->codec_info_duration        >= INT64_MAX / st->time_base.num / 2||
                     st->info->codec_info_duration_fields >= INT64_MAX / st->time_base.den ||
@@ -4447,9 +4453,7 @@ FF_ENABLE_DEPRECATION_WARNINGS
                  * within 1% of the original estimate. */
                 for (j = 0; j < MAX_STD_TIMEBASES; j++) {
                     AVRational std_fps = { get_std_framerate(j), 12 * 1001 };
-                    double error       = fabs(av_q2d(st->avg_frame_rate) /
-                                              av_q2d(std_fps) - 1);
-
+                    error = fabs(av_q2d(st->avg_frame_rate) / av_q2d(std_fps) - 1);
                     if (error < best_error) {
                         best_error = error;
                         best_fps   = std_fps.num;
@@ -4458,6 +4462,37 @@ FF_ENABLE_DEPRECATION_WARNINGS
                 if (best_fps)
                     av_reduce(&st->avg_frame_rate.num, &st->avg_frame_rate.den,
                               best_fps, 12 * 1001, INT_MAX);
+
+                // fix mpegvideo frame rate caculate error.
+                if (ic && ic->iformat && ic->iformat->name && !av_strcasecmp("mpegvideo", ic->iformat->name)) {
+                    for (j = 0; j < (sizeof(std_framerate) / sizeof(double)); j++) {
+                        error = fabs(av_q2d(st->avg_frame_rate) / std_framerate[j] - 1);
+                        if (error < match_error && error >= best_error) {
+                            framerate_error = 1;
+                        } else if (error < best_error) {
+                            framerate_error = 0;
+                            break;
+                        }
+                    }
+                    // if frame rate is incorrect use codec frame rate to replace it.
+                    if (framerate_error && avctx->framerate.num > 0 && avctx->framerate.den > 0) {
+                        // check codec frame rate.
+                        framerate_error = 0;
+                        for (j = 0; j < (sizeof(std_framerate) / sizeof(double)); j++) {
+                            error = fabs(av_q2d(avctx->framerate) / std_framerate[j] - 1);
+                            if (error < match_error && error >= best_error) {
+                                framerate_error = 1;
+                            } else if (error < best_error) {
+                                framerate_error = 0;
+                                break;
+                            }
+                        }
+                        if (!framerate_error) {
+                            st->avg_frame_rate.num = avctx->framerate.num;
+                            st->avg_frame_rate.den = avctx->framerate.den;
+                        }
+                    }
+                }
             }
 
             if (!st->r_frame_rate.num) {
