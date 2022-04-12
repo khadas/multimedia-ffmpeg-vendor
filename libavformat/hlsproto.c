@@ -289,6 +289,7 @@ retry:
                 {
                     seg->seg_kurl =  av_strdup(kurl);
                     memcpy(seg->seg_iv,kiv,32);
+                    seg->seg_iv[32]='\0';
                 }
                 ff_make_absolute_url(seg->url, sizeof(seg->url), url, line);
                 dynarray_add(&s->segments, &s->n_segments, seg);
