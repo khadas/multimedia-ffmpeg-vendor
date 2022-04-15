@@ -23,6 +23,7 @@
 #include "rawdec.h"
 #include "libavcodec/internal.h"
 #include "../libavcodec/hevc.h"
+#include <ctype.h>
 
 #define CAVS_SEQ_START_CODE       0x000001b0
 #define CAVS_PIC_I_START_CODE     0x000001b3
