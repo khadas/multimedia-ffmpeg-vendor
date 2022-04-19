@@ -79,6 +79,7 @@ static void register_all(void)
     REGISTER_MUXER   (AVM2,             avm2);
     REGISTER_DEMUXER (AVR,              avr);
     REGISTER_DEMUXER (AVS,              avs);
+    REGISTER_DEMUXER (AVS3,             avs3);
     REGISTER_DEMUXER (BETHSOFTVID,      bethsoftvid);
     REGISTER_DEMUXER (BFI,              bfi);
     REGISTER_DEMUXER (BINTEXT,          bintext);

@@ -966,6 +966,7 @@ OBJS-$(CONFIG_VP3_PARSER)              += vp3_parser.o
 OBJS-$(CONFIG_VP8_PARSER)              += vp8_parser.o
 OBJS-$(CONFIG_VP9_PARSER)              += vp9_parser.o
 OBJS-$(CONFIG_XMA_PARSER)              += xma_parser.o
+OBJS-$(CONFIG_AVS3_PARSER)             += avs3_parser.o
 
 # bitstream filters
 OBJS-$(CONFIG_AAC_ADTSTOASC_BSF)          += aac_adtstoasc_bsf.o aacadtsdec.o \

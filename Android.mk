@@ -207,6 +207,7 @@ FFMPEG_LIBAVCODEC_SRC_FILES := \
     libavcodec/avpicture.c \
     libavcodec/avrndec.c \
     libavcodec/avs.c \
+    libavcodec/avs3_parser.c \
     libavcodec/avuidec.c \
     libavcodec/avuienc.c \
     libavcodec/bethsoftvideo.c \
@@ -1025,6 +1026,7 @@ FFMPEG_LIBAVFORMAT_SRC_FILES := \
     libavformat/avlanguage.c \
     libavformat/avr.c \
     libavformat/avs.c \
+    libavformat/avs3dec.c \
     libavformat/bethsoftvid.c \
     libavformat/bfi.c \
     libavformat/bink.c \

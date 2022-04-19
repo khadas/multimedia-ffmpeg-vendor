@@ -715,6 +715,7 @@ static void register_all(void)
     REGISTER_PARSER(VP8,                vp8);
     REGISTER_PARSER(VP9,                vp9);
     REGISTER_PARSER(XMA,                xma);
+    REGISTER_PARSER(AVS3,               avs3);
 }
 
 void avcodec_register_all(void)
