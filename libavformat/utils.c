@@ -2377,8 +2377,8 @@ int64_t ff_gen_search(AVFormatContext *s, int stream_index, int64_t target_ts,
             pos = pos_limit;
         start_pos = pos;
 
-        // May pass pos_limit instead of -1.
-        ts = ff_read_timestamp(s, stream_index, &pos, INT64_MAX, read_timestamp);
+        // Add 6M to avoid boundary issue
+        ts = ff_read_timestamp(s, stream_index, &pos, (pos_limit + 6*1024*1024), read_timestamp);
         if (pos == pos_max)
             no_change++;
         else
@@ -2393,7 +2393,7 @@ int64_t ff_gen_search(AVFormatContext *s, int stream_index, int64_t target_ts,
             return -1;
         }
         if (target_ts <= ts) {
-            pos_limit = start_pos - 1;
+            pos_limit = start_pos;
             pos_max   = pos;
             ts_max    = ts;
         }
@@ -2903,7 +2903,7 @@ static void estimate_timings_from_pts(AVFormatContext *ic, int64_t old_offset)
             read_size += pkt->size;
             st         = ic->streams[pkt->stream_index];
             if (!strcmp(ic->iformat->name, "mpegts") &&
-                st->codecpar->codec_type == AVMEDIA_TYPE_AUDIO &&
+                (st->codecpar->codec_type == AVMEDIA_TYPE_AUDIO || st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) &&
                 (pkt->pts != AV_NOPTS_VALUE ||
                 pkt->dts != AV_NOPTS_VALUE)) {
                 ff_reduce_index(ic, st->index);
