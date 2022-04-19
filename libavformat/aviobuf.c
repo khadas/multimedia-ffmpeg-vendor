@@ -620,10 +620,43 @@ int avio_r8(AVIOContext *s)
         return *s->buf_ptr++;
     return 0;
 }
-
+static int IsAVIOContext(void* avcl)
+{
+    AVClass* avc = avcl ? *(AVClass **) avcl : NULL;
+    if (avc) {
+        char *p = NULL;
+        if (avc->parent_log_context_offset) {
+            AVClass** parent = *(AVClass ***) (((uint8_t *) avcl) + avc->parent_log_context_offset);
+            if (parent && *parent) {
+                p = (*parent)->item_name(parent);
+            }
+        }
+        if (p == NULL)
+            p = avc->item_name(avcl);
+        if (p)
+            return (strcasecmp("AVIOContext", p)==0?1:0);
+    }
+    return 0;
+}
 int avio_read(AVIOContext *s, unsigned char *buf, int size)
 {
     int len, size1;
+    AVIOInternal* internal = NULL;
+    URLContext* h= NULL;
+    int64_t start_ts = av_gettime_relative();
+    int64_t rw_timeout = 0;
+
+    if (IsAVIOContext(s))
+    {
+        internal = (AVIOInternal *)s->opaque;
+        if (internal)
+            h= (URLContext*)internal->h;
+        if (h && h->prot && h->prot->name && strcmp(h->prot->name, "udp") == 0)
+        {
+            av_opt_get_int(h, "rw_timeout", 0, &rw_timeout);
+            // av_log(h, AV_LOG_INFO, "avio_read read rs_timeout, s=%p, opaque=%p, h=%p, size=%d,rw_timeout=%lld.\n", s, internal, h, size,rw_timeout);
+        }
+    }
 
     size1 = size;
     while (size > 0) {
@@ -662,6 +695,10 @@ int avio_read(AVIOContext *s, unsigned char *buf, int size)
             buf += len;
             s->buf_ptr += len;
             size -= len;
+        }
+        if (rw_timeout> 0 && av_gettime_relative() > start_ts + rw_timeout) {
+            av_log(h, AV_LOG_INFO, "avio_read timeout. rw_timeout=%lld, read size=%d, return size=%d.\n", rw_timeout, size1, size1-size);
+            break;
         }
     }
     if (size1 == size) {
