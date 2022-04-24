@@ -32,6 +32,7 @@
 #include "internal.h"
 #include "url.h"
 #include <stdarg.h>
+#include "libavutil/time.h"
 
 #define IO_BUFFER_SIZE 32768
 
@@ -634,7 +635,7 @@ static int IsAVIOContext(void* avcl)
         if (p == NULL)
             p = avc->item_name(avcl);
         if (p)
-            return (strcasecmp("AVIOContext", p)==0?1:0);
+            return (av_strcasecmp("AVIOContext", p)==0?1:0);
     }
     return 0;
 }
