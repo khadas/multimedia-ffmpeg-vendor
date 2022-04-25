@@ -2393,7 +2393,7 @@ int64_t ff_gen_search(AVFormatContext *s, int stream_index, int64_t target_ts,
             return -1;
         }
         if (target_ts <= ts) {
-            pos_limit = start_pos;
+            pos_limit = start_pos - 1;
             pos_max   = pos;
             ts_max    = ts;
         }
