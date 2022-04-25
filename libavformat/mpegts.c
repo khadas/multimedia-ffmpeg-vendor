@@ -3207,6 +3207,9 @@ static int64_t mpegts_get_dts(AVFormatContext *s, int stream_index,
     if (avio_seek(s->pb, pos, SEEK_SET) < 0)
         return AV_NOPTS_VALUE;
     while(pos < pos_limit) {
+        if (ff_check_interrupt(&s->interrupt_callback)) {
+            break;
+        }
         int ret;
         AVPacket pkt;
         av_init_packet(&pkt);

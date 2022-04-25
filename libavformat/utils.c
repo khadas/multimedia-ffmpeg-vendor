@@ -2352,6 +2352,10 @@ int64_t ff_gen_search(AVFormatContext *s, int stream_index, int64_t target_ts,
 
     no_change = 0;
     while (pos_min < pos_limit) {
+        if (ff_check_interrupt(&s->interrupt_callback)) {
+            av_log(s, AV_LOG_DEBUG, "interrupted\n");
+            return AVERROR_EXIT;
+        }
         av_log(s, AV_LOG_TRACE,
                 "pos_min=0x%"PRIx64" pos_max=0x%"PRIx64" dts_min=%s dts_max=%s\n",
                 pos_min, pos_max, av_ts2str(ts_min), av_ts2str(ts_max));
