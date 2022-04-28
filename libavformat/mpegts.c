@@ -2075,11 +2075,12 @@ int ff_parse_mpeg2_descriptor(AVFormatContext *fc, AVStream *st, int stream_type
         uint8_t data2 = get8(pp, desc_end);
         uint8_t data3 = get8(pp, desc_end);
         uint8_t profile = data2 >> 1;
-        // profile == (0, 1, 9) --> AVC; profile = (2,3,4,5,6,7,8) --> HEVC;
-        if (profile > 9) {
+        // profile == (0, 1, 9) --> AVC; profile = (2,3,4,5,6,7,8) --> HEVC; profile == (10) --> AV01;
+        if (profile > 10) {
             av_log(fc, AV_LOG_ERROR, "profile error:%x\n", profile);
-            *pp = desc_end;
-            return 0;
+            //profile error, can be played as normal avc/hevc/av1 without dv effects.
+            st->codec->has_dolby_vision_config_box = AV_DV_BOX_TYPE_UNKNOWN;
+            break;
         }
 
         uint8_t level = ((data2 & 0x1) << 5) | ((data3 >> 3) & 0x1f);
@@ -2095,6 +2096,17 @@ int ff_parse_mpeg2_descriptor(AVFormatContext *fc, AVStream *st, int stream_type
 
         av_log(fc, AV_LOG_INFO, "profile:%d,level:%d bl_compatibility_id:%d\n", profile, level, bl_compatibility_id);
 
+        if (bl_compatibility_id != 0 &&
+            bl_compatibility_id != 1 &&
+            bl_compatibility_id != 2 &&
+            bl_compatibility_id != 4 &&
+            bl_compatibility_id != 6
+            ) {
+                av_log(fc, AV_LOG_ERROR, "bl_compatibility_id error:%x\n", bl_compatibility_id);
+                //ccid error, can't be played .
+                st->codec->has_dolby_vision_config_box = AV_DV_BOX_TYPE_ERROR;
+                break;
+            }
         st->codec->has_dolby_vision_config_box = 1;
         st->codec->dolby_vision_profile = profile;
         st->codec->dolby_vision_level = level;

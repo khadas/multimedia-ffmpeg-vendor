@@ -1824,7 +1824,11 @@ static int mov_read_dvcC_dvvC_dvwC(MOVContext *c, AVIOContext *pb, MOVAtom atom,
 
     // profile == (0, 1, 9) --> AVC; profile = (2,3,4,5,6,7,8) --> HEVC; profile == (10) --> AV01;
     uint8_t profile = config_data[2] >> 1;
-
+    if (profile > 10) {
+        av_log(NULL,AV_LOG_WARNING,"mov, unknown dv profile %d",profile);
+        st->codec->has_dolby_vision_config_box = AV_DV_BOX_TYPE_UNKNOWN;
+        return 0;
+    }
     uint8_t level = ((config_data[2] & 0x1) << 5) | ((config_data[3] >> 3) & 0x1f);
 
     const uint8_t rpu_present_flag = (config_data[3] >> 2) & 0x01;
