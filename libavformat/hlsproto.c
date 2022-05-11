@@ -109,6 +109,7 @@ static const AVOption hls_options[] = {
     {"cur_iv",  "current iv", offsetof(HLSContext,cur_iv),  AV_OPT_TYPE_BINARY, .flags = AV_OPT_FLAG_DECODING_PARAM|AV_OPT_FLAG_ENCODING_PARAM },
     {"durations",  "durations", offsetof(HLSContext,durations),  AV_OPT_TYPE_INT64,{.i64 = 0}, 0, INT64_MAX, AV_OPT_FLAG_EXPORT},
     {"reconnect", "auto reconnect after ts-segment disconnect before EOF", offsetof(HLSContext,reconnect), AV_OPT_TYPE_BOOL, { .i64 = 0 }, 0, 1, AV_OPT_FLAG_DECODING_PARAM },
+    {"has_endlist", "whether has endlist", offsetof(HLSContext, finished), AV_OPT_TYPE_INT,{.i64 = 1}, 0, INT_MAX, AV_OPT_FLAG_EXPORT},
     { NULL },
 };
 
@@ -335,7 +336,25 @@ static int hls_close(URLContext *h)
     ffurl_close(s->seg_hd);
     return 0;
 }
-
+static int update_durations(HLSContext *s)
+{
+    int i;
+    s->durations = 0;
+    for (i = 0 ; i < s->n_segments ; i++)
+    {
+        s->durations += s->segments[i]->duration;
+    }
+    if (av_opt_set_int(s, "durations", s->durations, 0) < 0)
+    {
+        av_log(s, AV_LOG_ERROR, "set s->duration error!\n");
+        return -1;
+    }
+    else
+    {
+        av_log(s, AV_LOG_INFO, "update s->n_segments=%d,cur_seq_no=%d, s->durations=%lld!\n", s->n_segments,s->cur_seq_no, s->durations);
+        return 0;
+    }
+}
 static int hls_open(URLContext *h, const char *uri, int flags)
 {
     HLSContext *s = h->priv_data;
@@ -415,15 +434,8 @@ static int hls_open(URLContext *h, const char *uri, int flags)
         s->cur_seq_no = s->start_seq_no + s->n_segments - 5;
     else    if (!s->finished && s->n_segments >= 3)
         s->cur_seq_no = s->start_seq_no + s->n_segments - 3;
-    if (s->finished)
-    {
-       for (i = 0 ; i < s->n_segments ; i++)
-       {
-         s->durations += s->segments[i]->duration;
-       }
-       if (av_opt_set_int(s, "durations", s->durations, 0) < 0)
-            av_log(s, AV_LOG_ERROR, "set s->duration error!\n");
-    }
+
+    update_durations(s);
     memset(s->mBandWidth, 0, sizeof(s->mBandWidth));
     s->bandwidth_index = 0;
     return 0;
@@ -498,6 +510,8 @@ reread:
                 av_log(s, AV_LOG_WARNING, "set cur_kurl error!\n");
             }
         }
+        if (av_opt_set_int(s, "has_endlist", s->finished, 0) < 0)
+            av_log(s, AV_LOG_ERROR, "set s->finished error!\n");
         if (ret > 0) {
             /*av_log(s, AV_LOG_ERROR, "[%s %d] size=%d delay=%lld\n",
                     __FUNCTION__, __LINE__, ret, delay);
@@ -632,6 +646,7 @@ retry:
     else if (!s->finished) {
         s->last_refreshlisttime = av_gettime_relative();
         av_log(h, AV_LOG_ERROR, "last_refreshlisttime %lld\n",s->last_refreshlisttime);
+        update_durations(s);
     }
     url = s->segments[s->cur_seq_no - s->start_seq_no]->url;
 
