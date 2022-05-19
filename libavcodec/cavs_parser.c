@@ -239,6 +239,15 @@ static int cavs2video_parse(AVCodecParserContext *s,
         }
     }
 
+    if (buf[0] == 0x0 && buf[1] == 0x0 && buf[2] == 0x1) {
+        if (buf[3] == (CAVS_START_CODE & 0xff) || buf[3] == (PIC_I_START_CODE & 0xff)
+            || buf[3] == 0xb1) {
+            s->key_frame = 1;
+        }else if (buf[3] == (PIC_PB_START_CODE & 0xff)) {
+            s->key_frame = 0;
+        }
+    }
+
     if (1) cavs2video_extract_headers(s, avctx, buf, buf_size);
     //avctx->time_base.den = 30000;
     //avctx->time_base.num = 1000;
