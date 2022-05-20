@@ -2442,6 +2442,7 @@ static void sdt_cb(MpegTSFilter *filter, const uint8_t *section, int section_len
     const uint8_t *p, *p_end, *desc_list_end, *desc_end;
     int onid, val, sid, desc_list_len, desc_tag, desc_len, service_type;
     char *name, *provider_name;
+    uint8_t stream_content, component_type;
 
     av_log(ts->stream, AV_LOG_TRACE, "SDT:\n");
     hex_dump_debug(ts->stream, section, section_len);
@@ -2508,6 +2509,51 @@ static void sdt_cb(MpegTSFilter *filter, const uint8_t *section, int section_len
                 }
                 av_free(name);
                 av_free(provider_name);
+                break;
+            case 0x50:
+                //DVB spec, 0X50 is compoment descriptor
+                //streaming info: Glassworks_V2_3840x2160_With2Pops_DVB_15bmps_AtmosAudio_50fps.ts
+                //if (stream_content_ext = 0xF, stream_content = 0x0B, component_type = 0x06), it's dolby vision streaming
+                stream_content =  get8(&p, p_end);
+                component_type = get8(&p, p_end);
+                av_log(ts->stream, AV_LOG_DEBUG, "stream_content: %x, component_type: %x, stream->nb_streams: %d, desc_len: %d\n",
+                 stream_content,component_type, ts->stream->nb_streams, desc_len);
+
+                for (int i = 0; i < ts->stream->nb_streams; i++) {
+
+                    if (ts->stream->streams[i] != NULL && ts->stream->streams[i]->codec != NULL && ts->stream->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
+
+                        if (desc_len > 2 && desc_len < 6)
+                            break;
+
+                        if (stream_content != 0xFB && component_type != 0x06)
+                            break;
+
+                        uint8_t data2 = get8(&p, p_end);
+                        uint8_t data3 = get8(&p, p_end);
+                        uint8_t profile = data2 >> 1;
+                        // profile == (0, 1, 9) --> AVC; profile = (2,3,4,5,6,7,8) --> HEVC;
+                        if (profile > 9) {
+                            profile = 9;
+                        }
+
+                        uint8_t level = ((data2 & 0x1) << 5) | ((data3 >> 3) & 0x1f);
+                        const uint8_t rpu_present_flag = (data3 >> 2) & 0x01;
+                        const uint8_t el_present_flag = (data3 >> 1) & 0x01;
+                        const uint8_t bl_present_flag = (data3 & 0x01);
+                        ts->stream->streams[i]->codec->has_dolby_vision_config_box = 1;
+                        ts->stream->streams[i]->codec->dolby_vision_profile = profile;
+                        ts->stream->streams[i]->codec->dolby_vision_level = level;
+
+                        if (rpu_present_flag && el_present_flag && !bl_present_flag) {
+                            ts->stream->streams[i]->codec->dolby_vision_rpu_assoc = 1;
+                        } else {
+                            ts->stream->streams[i]->codec->dolby_vision_rpu_assoc = 0;
+                        }
+
+                        ts->stream->streams[i]->codec->dolby_vision_bl_compat_id = 0;
+                    }
+                }
                 break;
             default:
                 break;
