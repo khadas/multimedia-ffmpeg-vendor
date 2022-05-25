@@ -1477,6 +1477,18 @@ FFMPEG_LIBRESAMPLE_SRC_FILES_armv8-a := \
     libswresample/aarch64/resample.S \
     libswresample/aarch64/resample_init.c \
 
+
+GIT_VERSION="$(shell cd $(LOCAL_PATH);git log | grep commit -m 1 | cut -d' ' -f 2)"
+GIT_VERSION_SHORT="$(shell  cd $(LOCAL_PATH);git rev-parse --short $(GIT_VERSION) | sed -e 's/^ *//g')"
+VERSION_MAJOR="$(shell  cd $(LOCAL_PATH);grep major version.json |cut -d : -f 2 |cut -d , -f 1 | sed -e 's/^ *//g')"
+AMLOGIC_FFMPEG_VER="$(shell cd $(LOCAL_PATH);grep amlogicver version.json |cut -d : -f 2 |cut -d , -f 1 | sed -e 's/^ *//g')"
+VERSION_MINOR="$(shell  cd $(LOCAL_PATH);grep minor version.json |cut -d : -f 2 |cut -d , -f 1 | sed -e 's/^ *//g')"
+CURR_VER_BASE_COMMIT="$(shell  cd $(LOCAL_PATH);grep commit version.json |cut -d : -f 2 |cut -d , -f 1 | sed -e 's/^ *//g')"
+CURR_VER_COMMITS_COUNT="$(shell  cd $(LOCAL_PATH);git rev-list --first-parent --abbrev-commit --pretty=oneline $(CURR_VER_BASE_COMMIT)^..HEAD |wc -l | sed -e 's/^ *//g')"
+VERSION_STRING=V$(VERSION_MAJOR).$(VERSION_MINOR).$(AMLOGIC_FFMPEG_VER).$(CURR_VER_COMMITS_COUNT)-g$(GIT_VERSION_SHORT)
+FFMPEG_CFLAGS += -DFF_VERSION_STRING=\"${VERSION_STRING}\"
+$(warning "Define VERSION_STRING: " $(VERSION_STRING))
+
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := libamffmpeg

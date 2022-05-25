@@ -3014,4 +3014,9 @@ AVRational av_stream_get_codec_timebase(const AVStream *st);
  * @}
  */
 
+#ifdef FF_VERSION_STRING
+static const char *kFFmpegVersionStr = "\r\nMM-module-name:FFmpeg-aml,Version:" FF_VERSION_STRING "\r\n";
+const char * ff_get_global_version_str() ;
+#endif
+
 #endif /* AVFORMAT_AVFORMAT_H */
