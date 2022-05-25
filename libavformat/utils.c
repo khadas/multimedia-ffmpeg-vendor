@@ -3204,6 +3204,8 @@ skip_duration_calc:
     fill_all_stream_timings(ic);
 
     avio_seek(ic->pb, old_offset, SEEK_SET);
+    av_opt_set(ic, "current_id", "0x1F43B675", AV_OPT_SEARCH_CHILDREN);//set the MATROSKA_ID_CLUSTER to current_id
+
     for (i = 0; i < ic->nb_streams; i++) {
         int j;
 

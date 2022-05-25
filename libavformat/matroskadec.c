@@ -4033,6 +4033,7 @@ static int webm_dash_manifest_read_packet(AVFormatContext *s, AVPacket *pkt)
 static const AVOption options[] = {
     { "live", "flag indicating that the input is a live file that only has the headers.", OFFSET(is_live), AV_OPT_TYPE_BOOL, {.i64 = 0}, 0, 1, AV_OPT_FLAG_DECODING_PARAM },
     { "can_seek", "can_seek.", OFFSET(can_seek), AV_OPT_TYPE_INT64, {.i64 = 1}, 0, 1, AV_OPT_FLAG_DECODING_PARAM },
+    { "current_id", "set the original EBML id", OFFSET(current_id), AV_OPT_TYPE_INT, {.i64 = 0}, 0, 0x7fffffff, AV_OPT_FLAG_DECODING_PARAM },
     { NULL },
 };
 
