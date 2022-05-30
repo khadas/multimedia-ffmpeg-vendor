@@ -272,6 +272,7 @@ typedef struct MOVContext {
     /* 1 - can seek */
     /* 0 - can't seek */
     int64_t can_seek;
+    int keyframe_count;
 } MOVContext;
 
 int ff_mp4_read_descr_len(AVIOContext *pb);

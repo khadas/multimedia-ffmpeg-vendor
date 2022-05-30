@@ -29,6 +29,44 @@
 #include "hevc.h"
 #include "h2645_parse.h"
 
+//////////// copy from player_hwdec.c ///////////////////////
+int check_size_in_buffer(unsigned char *p, int len)
+{
+    unsigned int size;
+    unsigned char *q = p;
+    while ((q + 4) < (p + len)) {
+        size = (*q << 24) | (*(q + 1) << 16) | (*(q + 2) << 8) | (*(q + 3));
+        if (size & 0xff000000) {
+            return 0;
+        }
+
+        if (q + size + 4 == p + len) {
+            return 1;
+        }
+
+        q += size + 4;
+    }
+    return 0;
+}
+
+int check_size_in_buffer3(unsigned char *p, int len)
+{
+    unsigned int size;
+    unsigned char *q = p;
+    while ((q + 3) < (p + len)) {
+        size = (*q << 16) | (*(q + 1) << 8) | (*(q + 2));
+
+        if (q + size + 3 == p + len) {
+            return 1;
+        }
+
+        q += size + 3;
+    }
+    return 0;
+}
+////////////////////////////////////////////////
+
+
 int ff_h2645_extract_rbsp(const uint8_t *src, int length,
                           H2645NAL *nal, int small_padding)
 {

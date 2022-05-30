@@ -232,10 +232,25 @@ static inline int parse_nal_units(AVCodecParserContext *s, const uint8_t *buf,
         int src_length, consumed;
         int ret;
         int num = 0, den = 0;
+
+        if (s->flags & PARSER_FLAG_COMPLETE_FRAMES) {
+            unsigned char *p = buf;
+            if (check_size_in_buffer(buf, buf_end -buf)) {
+                buf += 4;
+                goto PASS;
+            } else if (check_size_in_buffer3(buf, buf_end -buf)) {
+                buf += 3;
+                goto PASS;
+            }
+        }
+
         buf = avpriv_find_start_code(buf, buf_end, &state);
         if (--buf + 2 >= buf_end)
             break;
-        src_length = buf_end - buf;
+PASS:
+        if (!ctx->h.is_nalff) {
+            src_length = buf_end - buf;
+        }
 
         h->nal_unit_type = (*buf >> 1) & 0x3f;
         h->temporal_id   = (*(buf + 1) & 0x07) - 1;

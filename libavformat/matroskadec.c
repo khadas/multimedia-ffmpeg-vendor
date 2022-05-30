@@ -2593,6 +2593,9 @@ static int matroska_can_seek(AVFormatContext *s) {
     //cues entries num < 2 means unsupported seek funftion,
     //s->streams[0]->nb_index_entries = matroska->index.nb_elem < 2 ? 0 : matroska->index.nb_elem.
     if (matroska->index.nb_elem < 2) {
+        if (matroska->ctx->pb->seekable == 1 && matroska->index.nb_elem == 0) {
+            return 1;
+        }
         av_log(NULL,AV_LOG_ERROR,"unsupported seek funftion. nb_index_entries:%d, index.nb_elem:%d",
             s->streams[0]->nb_index_entries, matroska->index.nb_elem);
         return 0;

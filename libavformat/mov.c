@@ -2615,6 +2615,15 @@ int ff_mov_read_stsd_entries(MOVContext *c, AVIOContext *pb, int entries)
         }
     }
 
+    /* special codec parameters handling */
+    switch (st->codecpar->codec_id) {
+    case AV_CODEC_ID_HEVC:
+        st->need_parsing = AVSTREAM_PARSE_HEADERS;
+        break;
+    default:
+        break;
+    }
+
     if (pb->eof_reached)
         return AVERROR_EOF;
 
@@ -2807,11 +2816,9 @@ static int mov_read_stss(MOVContext *c, AVIOContext *pb, MOVAtom atom)
     }
 
     sc->keyframe_count = i;
-    if (sc->keyframe_count == 1 &&
-        st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
-        av_log(c->fc,AV_LOG_ERROR,"unsupported seek funftion.");
-        c->can_seek = 0;
-    }
+    // add for mp4/mov file seek
+    if (st->index == AVMEDIA_TYPE_VIDEO)
+        c->keyframe_count = i;
 
     if (pb->eof_reached)
         return AVERROR_EOF;
@@ -6907,6 +6914,7 @@ static const AVOption mov_options[] = {
     { "can_seek", "can_seek.", OFFSET(can_seek), AV_OPT_TYPE_INT64, {.i64 = 1}, 0, 1, AV_OPT_FLAG_DECODING_PARAM },
     { "partitioned_frame", "partitioned_frame", OFFSET(partitioned_frame), AV_OPT_TYPE_BOOL,
         {.i64 = 0}, 0, 1, 0 },
+    { "keyframe_count", "keyframe_count.", OFFSET(keyframe_count), AV_OPT_TYPE_INT, {.i64 = 0}, 0, 1, AV_OPT_FLAG_DECODING_PARAM },
     { NULL },
 };
 

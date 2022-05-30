@@ -72,6 +72,9 @@ typedef struct H2645Packet {
     int nals_allocated;
 } H2645Packet;
 
+int check_size_in_buffer(unsigned char *p, int len);
+int check_size_in_buffer3(unsigned char *p, int len);
+
 /**
  * Extract the raw (unescaped) bitstream.
  */
