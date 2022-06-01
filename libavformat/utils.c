@@ -2330,11 +2330,7 @@ int64_t ff_gen_search(AVFormatContext *s, int stream_index, int64_t target_ts,
 {
     int64_t pos, ts;
     int64_t start_pos;
-    int64_t lastIframepos = -1;
-    int64_t lastIframeTs = -1;
-    int64_t pos_limit_Range = 6*1024*1024;
     int no_change;
-    int firstLimitRangeFlag = 1;
     int ret;
 
     av_log(s, AV_LOG_TRACE, "gen_seek: %d %s\n", stream_index, av_ts2str(target_ts));
@@ -2396,20 +2392,8 @@ int64_t ff_gen_search(AVFormatContext *s, int stream_index, int64_t target_ts,
             pos = pos_limit;
         start_pos = pos;
 
-        if (!strcmp(s->iformat->name, "mpegts")) {
-            if (firstLimitRangeFlag) {
-                /*mpegts pos limit should not too large
-                readtimestamp with pos+range to avoid take lots of time if first cycle*/
-                pos_limit = pos;
-                firstLimitRangeFlag = 0;
-                av_log(s, AV_LOG_TRACE, "mpegts, use pos plus limit range instead of pos_limit plus Range");
-            } else {
-                //It should not add range if it is not the first cycle
-                pos_limit_Range = 0;
-            }
-        }
-        // Add 6M to avoid boundary issue
-        ts = ff_read_timestamp(s, stream_index, &pos, (pos_limit + pos_limit_Range), read_timestamp);
+        // May pass pos_limit instead of -1.
+        ts = ff_read_timestamp(s, stream_index, &pos, INT64_MAX, read_timestamp);
         if (pos == pos_max)
             no_change++;
         else
@@ -2420,18 +2404,6 @@ int64_t ff_gen_search(AVFormatContext *s, int stream_index, int64_t target_ts,
                 av_ts2str(ts_min), av_ts2str(ts), av_ts2str(ts_max), av_ts2str(target_ts),
                 pos_limit, start_pos, no_change);
         if (ts == AV_NOPTS_VALUE) {
-            if (lastIframepos != -1) {
-                *ts_ret = lastIframeTs;
-                av_log(s, AV_LOG_ERROR, "read_timestamp() failed, return lastIframepos:%lld, lastIframeTs:%lld\n",
-                    lastIframepos, lastIframeTs);
-                return lastIframepos;
-            } else if (((pos_limit+pos_limit_Range)  - start_pos) > (start_pos - pos_min)) {
-                //if pos_min is closer than seeked after 6M, then read the I frame of pos_min
-                *ts_ret = ts_min;
-                av_log(s, AV_LOG_ERROR, "read_timestamp() failed, return pos_min:%lld, ts_min:%lld\n",
-                    pos_min, ts_min);
-                return pos_min;
-            }
             av_log(s, AV_LOG_ERROR, "read_timestamp() failed in the middle\n");
             return -1;
         }
@@ -2439,13 +2411,19 @@ int64_t ff_gen_search(AVFormatContext *s, int stream_index, int64_t target_ts,
             pos_limit = start_pos - 1;
             pos_max   = pos;
             ts_max    = ts;
+
+            // keyframe found after interpolate position, exit keyframe search in this case.
+            AVStream *st = s->streams[stream_index];
+            if ((st->codecpar->width * st->codecpar->height > 3840 * 2160)
+                && !strcmp(s->iformat->name, "mpegts")
+                && (flags ^ AVSEEK_FLAG_BACKWARD)) {
+                break;
+            }
         }
         if (target_ts >= ts) {
             pos_min = pos;
             ts_min  = ts;
         }
-        lastIframepos = pos;
-        lastIframeTs = ts;
     }
 
     pos     = (flags & AVSEEK_FLAG_BACKWARD) ? pos_min : pos_max;
