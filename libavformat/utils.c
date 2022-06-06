@@ -2337,6 +2337,8 @@ int64_t ff_gen_search(AVFormatContext *s, int stream_index, int64_t target_ts,
     int64_t start_pos;
     int no_change;
     int ret;
+    int64_t pos_max_found = 0, pos_min_found = 0;
+    int64_t search_pos_limit = INT64_MAX;
 
     av_log(s, AV_LOG_TRACE, "gen_seek: %d %s\n", stream_index, av_ts2str(target_ts));
 
@@ -2398,7 +2400,7 @@ int64_t ff_gen_search(AVFormatContext *s, int stream_index, int64_t target_ts,
         start_pos = pos;
 
         // May pass pos_limit instead of -1.
-        ts = ff_read_timestamp(s, stream_index, &pos, INT64_MAX, read_timestamp);
+        ts = ff_read_timestamp(s, stream_index, &pos, search_pos_limit, read_timestamp);
         if (pos == pos_max)
             no_change++;
         else
@@ -2409,6 +2411,15 @@ int64_t ff_gen_search(AVFormatContext *s, int stream_index, int64_t target_ts,
                 av_ts2str(ts_min), av_ts2str(ts), av_ts2str(ts_max), av_ts2str(target_ts),
                 pos_limit, start_pos, no_change);
         if (ts == AV_NOPTS_VALUE) {
+            if (pos_min_found && (flags & AVSEEK_FLAG_BACKWARD)) {
+                *ts_ret = ts_min;
+                av_log(s, AV_LOG_TRACE, "%s return last pos_min\n", __FUNCTION__);
+                return pos_min;
+            } else if (pos_max_found && (flags ^ AVSEEK_FLAG_BACKWARD)) {
+                *ts_ret = ts_max;
+                av_log(s, AV_LOG_TRACE, "%s return last pos_max\n", __FUNCTION__);
+                return pos_max;
+            }
             av_log(s, AV_LOG_ERROR, "read_timestamp() failed in the middle\n");
             return -1;
         }
@@ -2416,16 +2427,20 @@ int64_t ff_gen_search(AVFormatContext *s, int stream_index, int64_t target_ts,
             pos_limit = start_pos - 1;
             pos_max   = pos;
             ts_max    = ts;
+            pos_max_found = 1;
 
-            // keyframe found after interpolate position, exit keyframe search in this case.
-            AVStream *st = s->streams[stream_index];
-            if ((st->codecpar->width * st->codecpar->height > 3840 * 2160)
-                && !strcmp(s->iformat->name, "mpegts")
-                && (flags ^ AVSEEK_FLAG_BACKWARD)) {
-                break;
+            if (!strcmp(s->iformat->name, "mpegts")) {
+                search_pos_limit = pos_limit;
+                // keyframe found after interpolate position, exit keyframe search in this case.
+                AVStream *st = s->streams[stream_index];
+                if ((st->codecpar->width * st->codecpar->height > 3840 * 2160)
+                    && (flags ^ AVSEEK_FLAG_BACKWARD)) {
+                    break;
+                }
             }
         }
         if (target_ts >= ts) {
+            pos_min_found = 1;
             pos_min = pos;
             ts_min  = ts;
         }
