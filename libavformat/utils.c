@@ -1562,6 +1562,11 @@ static int read_frame_internal(AVFormatContext *s, AVPacket *pkt)
     while (!got_packet && !s->internal->parse_queue) {
         AVStream *st;
         AVPacket cur_pkt;
+        if (ff_check_interrupt(&s->interrupt_callback)) {
+            av_log(s, AV_LOG_DEBUG, "interrupted\n");
+            return AVERROR_EXIT;
+        }
+
         if (s->pb && s->pb->mediascan_flag) {
             if (avformat_getcurtime_us() > (first_timeval + s->max_analyze_duration)) {
                 return -1;
