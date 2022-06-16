@@ -3915,6 +3915,52 @@ static int has_reached_probe_size_limit_ex(int64_t readSize, int64_t probeSize, 
     }
 }
 
+static int extract_aac_adts_extradata(AVFormatContext *ic, AVStream *st, const uint8_t *buf,int buf_size)
+{
+    AVCodecContext *avctx = st->internal->avctx;
+    uint8_t profile, sampling_freq_index, channel_configuration;
+    uint8_t header[2];
+    uint8_t csd[2];
+
+    if (!buf || buf_size < 7)
+        return -1;
+
+    // adts syncword 12bit 0xfff
+    if ((buf[0] << 8) | (buf[1] & 0xf0) == 0xfff0) {
+        memcpy(header, buf + 2, 2);
+
+        profile = (header[0] >> 6) & 0x3;
+        if (profile == 3) {
+            av_log(ic, AV_LOG_ERROR, "profile should not be 3\n");
+            return -1;
+        }
+        sampling_freq_index = (header[0] >> 2) & 0xf;
+        if (sampling_freq_index > 11) {
+            av_log(ic, AV_LOG_ERROR, "sampling_freq_index should not large than 11\n");
+            return -1;
+        }
+        channel_configuration = (header[0] & 0x1) << 2 | (header[1] >> 6);
+        if (channel_configuration == 0) {
+            av_log(ic, AV_LOG_ERROR, "channel_config should not be 0\n");
+            return -1;
+        }
+
+        csd[0] = ((profile + 1) << 3) | (sampling_freq_index >> 1);
+        csd[1] = ((sampling_freq_index << 7) & 0x80) | (channel_configuration << 3);
+
+        if (!avctx->extradata) {
+            avctx->extradata = av_mallocz(sizeof(csd));
+            if (!avctx->extradata)
+                return AVERROR(ENOMEM);
+
+            avctx->extradata_size = sizeof(csd);
+            memcpy(avctx->extradata, csd, sizeof(csd));
+        }
+    }
+
+    return 0;
+}
+
 static int avformat_check_dv_meta_el(AVFormatContext *ic, AVStream *st, const uint8_t *buf,int buf_size)
 {
     int nalsize = 0, naltype = 0;
@@ -4373,6 +4419,13 @@ FF_ENABLE_DEPRECATION_WARNINGS
                 memcpy(avctx->extradata, pkt->data,
                        avctx->extradata_size);
             }
+        }
+
+        /* extract aac adts csd and add to extradata */
+        if (!st->internal->avctx->extradata
+            && st->codecpar->codec_id == AV_CODEC_ID_AAC
+            && ic->iformat == av_find_input_format("mpegts")) {
+            extract_aac_adts_extradata(ic, st, pkt->data, pkt->size);
         }
 
         /* If still no information, we try to open the codec and to
