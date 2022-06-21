@@ -4300,8 +4300,13 @@ FF_ENABLE_DEPRECATION_WARNINGS
         /* NOTE: A new stream can be added there if no header in file
          * (AVFMTCTX_NOHEADER). */
         ret = read_frame_internal(ic, &pkt1);
-        if (ret == AVERROR(EAGAIN))
+        if (ret == AVERROR(EAGAIN)) {
+            if (read_size == 0 && avio_tell(ic->pb) - old_offset > 10 * probesize) {
+                av_log(ic, AV_LOG_ERROR, "no valid data");
+                goto find_stream_info_err;
+            }
             continue;
+        }
 
         if (ret < 0) {
             /* EOF or error*/
