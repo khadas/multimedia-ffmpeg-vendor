@@ -2984,6 +2984,82 @@ static void check_ac3_dts(AVFormatContext * s)
     }
 }
 
+#define MAX_PACKET_READ_NUM 72000
+static void check_aac_adts(AVFormatContext * s)
+{
+    MpegTSContext *ts = s->priv_data;
+    int s_index;
+    const uint8_t *data;
+    uint8_t packet[TS_PACKET_SIZE];
+    uint8_t header[2];
+    uint8_t csd[2];
+    uint8_t profile, sampling_freq_index, channel_configuration;
+
+    for (s_index = 0; s_index < s->nb_streams; s_index++) {
+        int codec_id = s->streams[s_index]->codecpar->codec_id;
+        int c_pid = s->streams[s_index]->id;
+        if (codec_id == AV_CODEC_ID_AAC) {
+            int packet_num, ret;
+            int pes_header_pos, es_header_pos;
+            packet_num = 0;
+            for (;;) {
+                packet_num++;
+                if (packet_num >= MAX_PACKET_READ_NUM) {
+                    break;
+                }
+                ret = read_packet(s, packet, ts->raw_packet_size,&data);
+                if (ret != 0) {
+                    return;
+                }
+                if ((c_pid != (AV_RB16(data + 1) & 0x1fff)) && (1 != (data[1] & 0x40))) {  //pid equal and must have pes/es header
+                    continue;
+                }
+                //seek to the pes header
+                for (pes_header_pos = 0; pes_header_pos < ts->raw_packet_size - 3; pes_header_pos++) {
+                    if (data[pes_header_pos] == 0x00 && data[pes_header_pos + 1] == 0x00 && data[pes_header_pos + 2] == 0x01) {
+                        break;
+                    }
+                }
+                if (pes_header_pos + 8 >= ts->raw_packet_size) {
+                    continue;
+                }
+                //we found the pes header and parse
+                es_header_pos = data[pes_header_pos + 8] + 9 + pes_header_pos; //pes header size
+                //read 4 bytes data
+                if (es_header_pos + 4 > ts->raw_packet_size) {
+                    continue;
+                }
+                //adts 12bit header oxfff
+                if (((data[es_header_pos] << 8) | (data[es_header_pos + 1] & 0xf0)) != 0xfff0) {
+                    continue;
+                }
+
+                memcpy(header, data + es_header_pos + 2, sizeof(csd));
+
+                profile = (header[0] >> 6) & 0x3;
+                if (profile == 3) {
+                    av_log(NULL, AV_LOG_WARNING, "profile should not be 3\n");
+                    continue;
+                }
+                sampling_freq_index = (header[0] >> 2) & 0xf;
+                if (sampling_freq_index > 11) {
+                    av_log(NULL, AV_LOG_WARNING, "sampling_freq_index should not large than 11\n");
+                    continue;
+                }
+                channel_configuration = (header[0] & 0x1) << 2 | (header[1] >> 6);
+                if (channel_configuration == 0) {
+                    av_log(NULL, AV_LOG_WARNING, "channel_config should not be 0\n");
+                    continue;
+                }
+
+                csd[0] = ((profile + 1) << 3) | (sampling_freq_index >> 1);
+                csd[1] = ((sampling_freq_index << 7) & 0x80) | (channel_configuration << 3);
+                av_dict_set_int(&s->streams[s_index]->metadata, "aac_adts_csd", ((csd[0] << 8) | csd[1]), 0);
+                break;
+            }
+        }
+    }
+}
 
 static void seek_back(AVFormatContext *s, AVIOContext *pb, int64_t pos) {
 
@@ -3099,6 +3175,7 @@ static int mpegts_read_header(AVFormatContext *s)
     }
 
     check_ac3_dts(s);
+    check_aac_adts(s);
     seek_back(s, pb, pos);
     return 0;
 }
