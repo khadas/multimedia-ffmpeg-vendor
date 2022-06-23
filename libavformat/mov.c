@@ -1827,7 +1827,9 @@ static int mov_read_dvcC_dvvC_dvwC(MOVContext *c, AVIOContext *pb, MOVAtom atom,
     if (profile > 10) {
         av_log(NULL,AV_LOG_WARNING,"mov, unknown dv profile %d",profile);
         st->codec->has_dolby_vision_config_box = AV_DV_BOX_TYPE_UNKNOWN;
-        return 0;
+        //return 0;
+    } else {
+        st->codec->has_dolby_vision_config_box = dv_box_type;
     }
     uint8_t level = ((config_data[2] & 0x1) << 5) | ((config_data[3] >> 3) & 0x1f);
 
@@ -1841,7 +1843,6 @@ static int mov_read_dvcC_dvvC_dvwC(MOVContext *c, AVIOContext *pb, MOVAtom atom,
         bl_compatibility_id = (int32_t)(config_data[4] >> 4);
     }
 
-    st->codec->has_dolby_vision_config_box = dv_box_type;
     st->codec->dolby_vision_profile = profile;
     st->codec->dolby_vision_level = level;
 
