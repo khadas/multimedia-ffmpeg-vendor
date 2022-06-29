@@ -39,6 +39,7 @@
 #define MAC_FORMAT_FLAG_CREATE_WAV_HEADER    32 // create the wave header on decompression (not stored)
 
 #define APE_EXTRADATA_SIZE 6
+#define APE_MAX_DECODE_BUFFER_SIZE (1024 * 1024) // AudioFFMPEGDecoder codec buffer size
 
 typedef struct APEFrame {
     int64_t pos;
@@ -402,7 +403,7 @@ static int ape_read_packet(AVFormatContext * s, AVPacket * pkt)
         nblocks = ape->blocksperframe;
 
     if (ape->frames[ape->currentframe].size <= 0 ||
-        ape->frames[ape->currentframe].size > INT_MAX - extra_size) {
+        ape->frames[ape->currentframe].size > APE_MAX_DECODE_BUFFER_SIZE - extra_size) {
         av_log(s, AV_LOG_ERROR, "invalid packet size: %d\n",
                ape->frames[ape->currentframe].size);
         ape->currentframe++;
