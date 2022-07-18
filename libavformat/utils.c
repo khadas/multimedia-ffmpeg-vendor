@@ -4027,9 +4027,9 @@ static void compute_aac_dur(AVFormatContext *ic) {
             int64_t framedur =  (1024 * 1000000ll + (sr - 1)) / sr;
             while (offset < file_size) {
                 if ((frameSize = getAdtsFrameLength(ic->pb, offset, NULL)) == 0) {
-                    av_log(NULL,AV_LOG_ERROR,"prematured AAC stream (%lld vs %lld)",
+                    av_log(NULL,AV_LOG_WARNING,"prematured AAC stream (%lld vs %lld)",
                             (long long)offset, (long long)file_size);
-                    goto error;
+                    break;
                 }
                 offset += frameSize;
                 numFrames ++;
@@ -4040,7 +4040,7 @@ static void compute_aac_dur(AVFormatContext *ic) {
             }
         }
     }
-error:
+
     avio_seek(ic->pb, cur_pos, SEEK_SET);
 }
 
