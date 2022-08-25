@@ -37,6 +37,7 @@
 #include "libavutil/timestamp.h"
 
 #include "libavcodec/bytestream.h"
+#include "libavcodec/cavs.h"
 #include "libavcodec/internal.h"
 #include "libavcodec/raw.h"
 
@@ -4391,8 +4392,7 @@ FF_ENABLE_DEPRECATION_WARNINGS
          * the container. */
          av_log(ic, AV_LOG_INFO, "codec_id %d, guessed %d, para_ex %d\n", st->codec->codec_id,
                       has_decode_delay_been_guessed_ext(st), has_codec_parameters_ex(st->codec));
-         if ((st->codec->codec_id != AV_CODEC_ID_CAVS) &&
-            ( !has_decode_delay_been_guessed_ext(st) && !has_codec_parameters_ex(st->codec)))
+        if (!has_decode_delay_been_guessed_ext(st) && !has_codec_parameters_ex(st->codec))
             try_decode_frame(ic, st, pkt,
                              (options && i < orig_nb_streams) ? &options[i] : NULL);
 
@@ -4401,6 +4401,15 @@ FF_ENABLE_DEPRECATION_WARNINGS
 
         if (ic->flags & AVFMT_FLAG_NOBUFFER)
             av_packet_unref(pkt);
+
+        if (st->codec->codec_id == AV_CODEC_ID_CAVS) {
+            AVSContext *h = avctx->priv_data;
+            if (h != NULL && h->got_keyframe == 1 && h->stream_revision == 0) {
+                av_log(ic, AV_LOG_ERROR, "old avs version(samples from 2006), cannot decode\n");
+                ret = AVERROR_DECODER_NOT_FOUND;
+                goto find_stream_info_err;
+            }
+        }
 
         st->codec_info_nb_frames++;
         count++;

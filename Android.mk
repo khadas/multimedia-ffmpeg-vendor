@@ -232,7 +232,11 @@ FFMPEG_LIBAVCODEC_SRC_FILES := \
     libavcodec/c93.c \
     libavcodec/cabac.c \
     libavcodec/canopus.c \
+    libavcodec/cavs.c \
     libavcodec/cavs_parser.c \
+    libavcodec/cavsdata.c \
+    libavcodec/cavsdec.c \
+    libavcodec/cavsdsp.c \
     libavcodec/cbrt_data.c \
     libavcodec/cbrt_data_fixed.c \
     libavcodec/ccaption_dec.c \
