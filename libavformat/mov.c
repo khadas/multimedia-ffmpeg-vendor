@@ -4165,7 +4165,8 @@ static int mov_read_keys(MOVContext *c, AVIOContext *pb, MOVAtom atom)
         }
         c->meta_keys[i] = av_mallocz(key_size + 1);
         if (!c->meta_keys[i])
-            return AVERROR(ENOMEM);
+            //return AVERROR(ENOMEM);
+            return 0;
         avio_read(pb, c->meta_keys[i], key_size);
     }
 
