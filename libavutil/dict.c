@@ -150,6 +150,7 @@ int av_dict_set_int(AVDictionary **pm, const char *key, int64_t value,
     char valuestr[22];
     snprintf(valuestr, sizeof(valuestr), "%"PRId64, value);
     flags &= ~AV_DICT_DONT_STRDUP_VAL;
+    //coverity[Memory-corruptions]
     return av_dict_set(pm, key, valuestr, flags);
 }
 
@@ -171,9 +172,10 @@ static int parse_key_value_pair(AVDictionary **pm, const char **buf,
     else
         ret = AVERROR(EINVAL);
 
+    //coverity[Memory-corruptions]
     av_freep(&key);
+    //coverity[Memory-corruptions]
     av_freep(&val);
-
     return ret;
 }
 
@@ -265,6 +267,7 @@ int avpriv_dict_set_timestamp(AVDictionary **dict, const char *key, int64_t time
         if (!strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S", ptm))
             return AVERROR_EXTERNAL;
         av_strlcatf(buf, sizeof(buf), ".%06dZ", (int)(timestamp % 1000000));
+        //coverity[Memory-corruptions]
         return av_dict_set(dict, key, buf, 0);
     } else {
         return AVERROR_EXTERNAL;

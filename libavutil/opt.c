@@ -1608,6 +1608,7 @@ int av_opt_set_dict2(void *obj, AVDictionary **options, int search_flags)
         if (ret == AVERROR_OPTION_NOT_FOUND)
             ret = av_dict_set(&tmp, t->key, t->value, 0);
         if (ret < 0) {
+            // coverity[Memory-illegal accesses]
             av_log(obj, AV_LOG_ERROR, "Error setting option %s to value %s.\n", t->key, t->value);
             av_dict_free(&tmp);
             return ret;
