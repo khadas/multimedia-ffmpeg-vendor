@@ -2098,11 +2098,12 @@ int ff_parse_mpeg2_descriptor(AVFormatContext *fc, AVStream *st, int stream_type
 
         av_log(fc, AV_LOG_INFO, "profile:%d,level:%d bl_compatibility_id:%d\n", profile, level, bl_compatibility_id);
 
-        if (bl_compatibility_id != 0 &&
+        if ((bl_compatibility_id != 0 &&
             bl_compatibility_id != 1 &&
             bl_compatibility_id != 2 &&
             bl_compatibility_id != 4 &&
-            bl_compatibility_id != 6
+            bl_compatibility_id != 6) &&
+            (profile != 8 && bl_compatibility_id != 5)
             ) {
                 av_log(fc, AV_LOG_ERROR, "bl_compatibility_id error:%x\n", bl_compatibility_id);
                 //ccid error, can't be played .
