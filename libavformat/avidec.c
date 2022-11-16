@@ -1008,11 +1008,11 @@ end_of_header:
 fail:
         return AVERROR_INVALIDDATA;
     }
-
-    if (!avi->index_loaded && (pb->seekable & AVIO_SEEKABLE_NORMAL))
+    if (!avi->index_loaded && (pb->seekable & AVIO_SEEKABLE_NORMAL) && !(s->flags & AVFMT_FLAG_IGNIDX)) {
         avi_load_index(s);
+        avi->index_loaded    |= 1;
+    }
     calculate_bitrate(s);
-    avi->index_loaded    |= 1;
 
     if ((ret = guess_ni_flag(s)) < 0)
         return ret;
