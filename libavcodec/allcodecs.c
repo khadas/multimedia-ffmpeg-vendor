@@ -466,14 +466,7 @@ static void register_all(void)
     REGISTER_DECODER(VMDAUDIO,          vmdaudio);
     REGISTER_ENCDEC (VORBIS,            vorbis);
     REGISTER_ENCDEC (WAVPACK,           wavpack);
-    REGISTER_DECODER(WMALOSSLESS,       wmalossless);
-    REGISTER_DECODER(WMAPRO,            wmapro);
-    REGISTER_ENCDEC (WMAV1,             wmav1);
-    REGISTER_ENCDEC (WMAV2,             wmav2);
-    REGISTER_DECODER(WMAVOICE,          wmavoice);
     REGISTER_DECODER(WS_SND1,           ws_snd1);
-    REGISTER_DECODER(XMA1,              xma1);
-    REGISTER_DECODER(XMA2,              xma2);
 
     /* PCM codecs */
     REGISTER_ENCDEC (PCM_ALAW,          pcm_alaw);

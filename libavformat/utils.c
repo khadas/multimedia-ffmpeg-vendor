@@ -4699,6 +4699,17 @@ find_stream_info_err:
     if (ic->pb)
         av_log(ic, AV_LOG_DEBUG, "After avformat_find_stream_info() pos: %"PRId64" bytes read:%"PRId64" seeks:%d frames:%d\n",
                avio_tell(ic->pb), ic->pb->bytes_read, ic->pb->seek_count, count);
+
+    for (i = 0; i < ic->nb_streams; i++) {
+        st = ic->streams[i];
+        if (st->codec->codec_id == AV_CODEC_ID_WMAV1 ||
+            st->codec->codec_id == AV_CODEC_ID_WMAV2 ||
+            st->codec->codec_id == AV_CODEC_ID_WMAPRO ||
+            st->codec->codec_id == AV_CODEC_ID_WMALOSSLESS ||
+            st->codec->codec_id == AV_CODEC_ID_WMAVOICE) {
+            st->codec->codec_id = AV_CODEC_ID_NONE;
+        }
+    }
     return ret;
 }
 

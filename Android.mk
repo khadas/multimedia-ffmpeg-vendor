@@ -799,14 +799,7 @@ FFMPEG_LIBAVCODEC_SRC_FILES := \
     libavcodec/webp.c \
     libavcodec/webvttdec.c \
     libavcodec/webvttenc.c \
-    libavcodec/wma.c \
-    libavcodec/wma_common.c \
     libavcodec/wma_freqs.c \
-    libavcodec/wmadec.c \
-    libavcodec/wmaenc.c \
-    libavcodec/wmalosslessdec.c \
-    libavcodec/wmaprodec.c \
-    libavcodec/wmavoice.c \
     libavcodec/wmv2data.c \
     libavcodec/wmv2dsp.c \
     libavcodec/wnv1.c \
