@@ -1331,7 +1331,6 @@ FFMPEG_LIBAVFORMAT_SRC_FILES := \
     libavformat/smjpeg.c \
     libavformat/smjpegdec.c \
     libavformat/smjpegenc.c \
-    libavformat/smoothstreamingenc.c \
     libavformat/smush.c \
     libavformat/sol.c \
     libavformat/soxdec.c \
