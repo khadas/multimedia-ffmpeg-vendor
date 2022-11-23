@@ -807,11 +807,8 @@ FFMPEG_LIBAVCODEC_SRC_FILES := \
     libavcodec/wmalosslessdec.c \
     libavcodec/wmaprodec.c \
     libavcodec/wmavoice.c \
-    libavcodec/wmv2.c \
     libavcodec/wmv2data.c \
-    libavcodec/wmv2dec.c \
     libavcodec/wmv2dsp.c \
-    libavcodec/wmv2enc.c \
     libavcodec/wnv1.c \
     libavcodec/wrapped_avframe.c \
     libavcodec/ws-snd1.c \

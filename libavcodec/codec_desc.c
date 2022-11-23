@@ -135,20 +135,6 @@ static const AVCodecDescriptor codec_descriptors[] = {
         .props     = AV_CODEC_PROP_LOSSY,
     },
     {
-        .id        = AV_CODEC_ID_WMV1,
-        .type      = AVMEDIA_TYPE_VIDEO,
-        .name      = "wmv1",
-        .long_name = NULL_IF_CONFIG_SMALL("Windows Media Video 7"),
-        .props     = AV_CODEC_PROP_LOSSY,
-    },
-    {
-        .id        = AV_CODEC_ID_WMV2,
-        .type      = AVMEDIA_TYPE_VIDEO,
-        .name      = "wmv2",
-        .long_name = NULL_IF_CONFIG_SMALL("Windows Media Video 8"),
-        .props     = AV_CODEC_PROP_LOSSY,
-    },
-    {
         .id        = AV_CODEC_ID_H263P,
         .type      = AVMEDIA_TYPE_VIDEO,
         .name      = "h263p",

@@ -137,7 +137,7 @@ OBJS-$(CONFIG_VP3DSP)                  += vp3dsp.o
 OBJS-$(CONFIG_VP56DSP)                 += vp56dsp.o
 OBJS-$(CONFIG_VP8DSP)                  += vp8dsp.o
 OBJS-$(CONFIG_WMA_FREQS)               += wma_freqs.o
-OBJS-$(CONFIG_WMV2DSP)                 += wmv2dsp.o
+
 
 # decoders/encoders
 OBJS-$(CONFIG_ZERO12V_DECODER)         += 012v.o
@@ -632,12 +632,12 @@ OBJS-$(CONFIG_WMAV2_ENCODER)           += wmaenc.o wma.o wma_common.o aactab.o
 OBJS-$(CONFIG_WMAVOICE_DECODER)        += wmavoice.o \
                                           celp_filters.o \
                                           acelp_vectors.o acelp_filters.o
-OBJS-$(CONFIG_WMV1_DECODER)            += msmpeg4dec.o msmpeg4.o msmpeg4data.o
-OBJS-$(CONFIG_WMV1_ENCODER)            += msmpeg4enc.o
-OBJS-$(CONFIG_WMV2_DECODER)            += wmv2dec.o wmv2.o wmv2data.o \
-                                          msmpeg4dec.o msmpeg4.o msmpeg4data.o
-OBJS-$(CONFIG_WMV2_ENCODER)            += wmv2enc.o wmv2.o wmv2data.o \
-                                          msmpeg4.o msmpeg4enc.o msmpeg4data.o
+
+
+
+
+
+
 OBJS-$(CONFIG_WNV1_DECODER)            += wnv1.o
 OBJS-$(CONFIG_WRAPPED_AVFRAME_ENCODER) += wrapped_avframe.o
 OBJS-$(CONFIG_WS_SND1_DECODER)         += ws-snd1.o
