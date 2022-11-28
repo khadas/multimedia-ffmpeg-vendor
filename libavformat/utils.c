@@ -405,7 +405,8 @@ static int init_input(AVFormatContext *s, const char *filename,
     int ret;
     AVProbeData pd = { filename, NULL, 0 };
     int score = AVPROBE_SCORE_RETRY;
-
+    char *newFileName = NULL;
+    s->fcc_fec_flag = 0;
     if (s->pb) {
         s->flags |= AVFMT_FLAG_CUSTOM_IO;
         if (!s->iformat)
@@ -416,16 +417,51 @@ static int init_input(AVFormatContext *s, const char *filename,
                                       "will be ignored with AVFMT_NOFILE format.\n");
         return 0;
     }
+    //+[SE][BUG][IPTV-605][houren.wang] add support for huawei fcc and convert it to ZTE format
+    //huawei fcc url: igmp://239.11.0.110:5140?mediaType=1&channelFCCPort=8027&channelFCCIP=183.223.122.117&channelFECPort=5139
+    // ZTE fcc url: rtp://@239.10.0.43:5140?ChannelFCCPort=15970&ChannelFCCIP=223.85.247.182
+    else if ((strstr(filename,"rtp://") != NULL || strstr(filename, "igmp://")!=NULL) && strcasestr(filename,"ChannelFCCIP") != NULL && 1 == am_getconfig_bool_def("vendor.media.amnuplayer.fcc_enable",1)) {
+        char *listfile=av_mallocz(MAX_URL_SIZE);
+        int old_proto_len = filename[0]=='r' ? 3 : 4;
+        strcpy(listfile,"rtpfcc");
+        strcpy(listfile+ 6,filename + old_proto_len);
+        newFileName = listfile;
+        av_log(NULL, AV_LOG_ERROR, "[%s:%d] ---url to %s\n", __FUNCTION__,__LINE__,listfile);
+    } else if (strstr(filename,"rtp://") != NULL && strstr(filename,"ChannelFECPort") != NULL && 1 == am_getconfig_bool("vendor.media.amnuplayer.fec_enable", 0)) {//  // rtp fec protocol
+        char *listfile=av_mallocz(MAX_URL_SIZE);
+        strcpy(listfile,"rtpfec");
+        strcpy(listfile+ 6,filename + 3);
+        av_log(NULL, AV_LOG_ERROR, "[%s:%d] ---url to %s\n", __FUNCTION__,__LINE__,listfile);
+        newFileName = listfile;
+    }
 
     if ((s->iformat && s->iformat->flags & AVFMT_NOFILE) ||
-        (!s->iformat && (s->iformat = av_probe_input_format2(&pd, 0, &score))))
-        return score;
+        (!s->iformat && (s->iformat = av_probe_input_format2(&pd, 0, &score)))) {
+        if (strcasestr(filename,"ChannelFCCIP") != NULL) {
+            av_log(NULL, AV_LOG_ERROR, "[%s:%d] ---fcc \n", __FUNCTION__,__LINE__);
+        }
+        else
+            return score;
+    }
 
-    if ((ret = s->io_open(s, &s->pb, filename, AVIO_FLAG_READ | s->avio_flags, options)) < 0)
+    if (newFileName) {
+        if ((ret = s->io_open(s, &s->pb, newFileName, AVIO_FLAG_READ | s->avio_flags, options)) < 0) {
+           av_free(newFileName);
+           return ret;
+        }
+        s->fcc_fec_flag = 1;
+        goto PASS_THROUGH;
+    }
+    else if ((ret = s->io_open(s, &s->pb, filename, AVIO_FLAG_READ | s->avio_flags, options)) < 0)
         return ret;
 
     if (s->iformat)
         return 0;
+PASS_THROUGH:
+    if (newFileName) {
+        return av_probe_input_buffer2(s->pb, &s->iformat, newFileName,
+                                 s, 0, s->format_probesize);
+    }
     return av_probe_input_buffer2(s->pb, &s->iformat, filename,
                                  s, 0, s->format_probesize);
 }
@@ -1756,7 +1792,8 @@ FF_ENABLE_DEPRECATION_WARNINGS
 #endif
     }
 
-    av_opt_get_dict_val(s, "metadata", AV_OPT_SEARCH_CHILDREN, &metadata);
+    if (!s->fcc_fec_flag)
+        av_opt_get_dict_val(s, "metadata", AV_OPT_SEARCH_CHILDREN, &metadata);
     if (metadata) {
         s->event_flags |= AVFMT_EVENT_FLAG_METADATA_UPDATED;
         av_dict_copy(&s->metadata, metadata, 0);

@@ -1411,6 +1411,7 @@ FFMPEG_LIBAVFORMAT_SRC_FILES := \
     libavformat/dtsdec.c \
     libavformat/dtshddec.c \
     libavformat/ac3dec.c \
+    libavformat/RS_fec.c \
 
 ##### libswscalse
 
@@ -1533,10 +1534,10 @@ LOCAL_SRC_FILES_arm64 := \
     $(FFMPEG_LIBSWSCALE_SRC_FILES_armv8-a) \
 
 LOCAL_C_INCLUDES += external/zlib
-
 LOCAL_C_INCLUDES += external/boringssl/src/include
+LOCAL_C_INCLUDES += hardware/amlogic/media/amavutils/include
 LOCAL_SHARED_LIBRARIES := libutils liblog libdl libz libcutils libutilscallstack
-LOCAL_SHARED_LIBRARIES += libssl libcrypto
+LOCAL_SHARED_LIBRARIES += libssl libcrypto libamavutils
 
 include $(BUILD_SHARED_LIBRARY)
 
@@ -1588,10 +1589,11 @@ LOCAL_SRC_FILES_arm64 := \
     $(FFMPEG_LIBSWSCALE_SRC_FILES_armv8-a) \
 
 LOCAL_C_INCLUDES += external/zlib
+LOCAL_C_INCLUDES += hardware/amlogic/media/amavutils/include
 
 LOCAL_C_INCLUDES += external/boringssl/src/include
 LOCAL_SHARED_LIBRARIES := libutils liblog libdl libz libcutils libutilscallstack
 
-LOCAL_SHARED_LIBRARIES += libssl libcrypto
+LOCAL_SHARED_LIBRARIES += libssl libcrypto libamavutils
 include $(BUILD_SHARED_LIBRARY)
 endif

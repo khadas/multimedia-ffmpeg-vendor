@@ -284,6 +284,14 @@ int av_probe_input_buffer2(AVIOContext *pb, AVInputFormat **fmt,
     if (offset >= max_probe_size)
         return AVERROR(EINVAL);
 
+    if (strstr(filename,"rtpfcc://") != NULL) {
+        extern AVInputFormat ff_mpegts_demuxer;
+        av_free(filename);
+        *fmt = &ff_mpegts_demuxer;
+        av_log(NULL, AV_LOG_INFO, "[%s]rtp set mpegts,skip probe format\n", __FUNCTION__);
+        goto fail;
+    }
+
     if (pb->av_class) {
         uint8_t *mime_type_opt = NULL;
         char *semi;
