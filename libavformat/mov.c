@@ -604,7 +604,10 @@ retry:
             str[str_size] = 0;
         }
         c->fc->event_flags |= AVFMT_EVENT_FLAG_METADATA_UPDATED;
-        av_dict_set(&c->fc->metadata, key, str, 0);
+        if (strcmp(key, "title") || c->itunes_metadata
+            || !av_dict_get(c->fc->metadata, "title", NULL, 0)) {
+            av_dict_set(&c->fc->metadata, key, str, 0);
+        }
         if (*language && strcmp(language, "und")) {
             snprintf(key2, sizeof(key2), "%s-%s", key, language);
             av_dict_set(&c->fc->metadata, key2, str, 0);
