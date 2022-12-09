@@ -1660,6 +1660,7 @@ FF_ENABLE_DEPRECATION_WARNINGS
                 st->parser->flags |= PARSER_FLAG_ONCE;
             else if (st->need_parsing == AVSTREAM_PARSE_FULL_RAW)
                 st->parser->flags |= PARSER_FLAG_USE_CODEC_TS;
+            //coverity[Null pointer dereferences]
             if (st->parser && s && s->iformat
                  && s->iformat->name
                  && !strcmp(s->iformat->name, "mpegvideo")) {
@@ -2582,6 +2583,7 @@ static int seek_frame_internal(AVFormatContext *s, int stream_index,
     /* first, we try the format specific seek */
     if (s->iformat->read_seek) {
         ff_read_frame_flush(s);
+        //coverity[Memory - corruptions]
         ret = s->iformat->read_seek(s, stream_index, timestamp, flags);
     } else
         ret = -1;
@@ -3335,7 +3337,7 @@ static void estimate_timings(AVFormatContext *ic, int64_t old_offset)
                 st->codecpar->codec_type, st->duration, need_re_estimate_timing);
         }
         if (need_re_estimate_timing) {
-            int64_t duration, duration1;
+            int64_t duration = 0, duration1 = 0;
             estimate_timings_from_av_pts(ic, old_offset);
             ic->duration_estimation_method = AVFMT_DURATION_FROM_PTS;
             /* update ic->duration */
@@ -3449,6 +3451,7 @@ static int try_decode_frame(AVFormatContext *s, AVStream *st, AVPacket *avpkt,
 
         /* Force thread count to 1 since the H.264 decoder will not extract
          * SPS and PPS to extradata during multi-threaded decoding. */
+         //coverity[Memory-corruptions]
         av_dict_set(options ? options : &thread_opt, "threads", "1", 0);
         if (s->codec_whitelist)
             av_dict_set(options ? options : &thread_opt, "codec_whitelist", s->codec_whitelist, 0);
@@ -4143,9 +4146,11 @@ FF_ENABLE_DEPRECATION_WARNINGS
 
         /* Force thread count to 1 since the H.264 decoder will not extract
          * SPS and PPS to extradata during multi-threaded decoding. */
+         //coverity[Memory-corruptions]
         av_dict_set(options ? &options[i] : &thread_opt, "threads", "1", 0);
 
         if (ic->codec_whitelist)
+            //coverity[Memory-corruptions]
             av_dict_set(options ? &options[i] : &thread_opt, "codec_whitelist", ic->codec_whitelist, 0);
 
         /* Ensure that subtitle_header is properly set. */
@@ -5126,6 +5131,7 @@ AVChapter *avpriv_new_chapter(AVFormatContext *s, int id, AVRational time_base,
             return NULL;
         dynarray_add(&s->chapters, &s->nb_chapters, chapter);
     }
+    //coverity[Memory-corruptions]
     av_dict_set(&chapter->metadata, "title", title, 0);
     chapter->id        = id;
     chapter->time_base = time_base;
@@ -6089,6 +6095,7 @@ int ff_standardize_creation_time(AVFormatContext *s)
     int64_t timestamp;
     int ret = ff_parse_creation_time_metadata(s, &timestamp, 0);
     if (ret == 1)
+        //coverity[Memory-corruptions]
         return avpriv_dict_set_timestamp(&s->metadata, "creation_time", timestamp);
     return ret;
 }

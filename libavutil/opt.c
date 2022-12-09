@@ -817,6 +817,7 @@ int av_opt_get(void *obj, const char *name, int search_flags, uint8_t **out_val)
         }
         bin = *(uint8_t **)dst;
         for (i = 0; i < len; i++)
+            //coverity[Null pointer dereferences]
             snprintf(*out_val + i * 2, 3, "%02X", bin[i]);
         return 0;
     case AV_OPT_TYPE_IMAGE_SIZE:
@@ -941,6 +942,7 @@ int av_opt_get_bin(void *obj, const char *name, int search_flags, uint8_t **out_
             return 0;
         }
         bin = *(uint8_t **)dst;
+        //coverity[Null pointer dereferences]
         memcpy(*out_val, bin , len);
         return 0;
 }
@@ -1861,6 +1863,7 @@ int av_opt_query_ranges_default(AVOptionRanges **ranges_arg, void *obj, const ch
         range->component_min = 0;
         range->component_max = INT_MAX/128/8;
         range->value_min = 0;
+        //coverity[Incorrect expression]
         range->value_max = INT_MAX/8;
         break;
     case AV_OPT_TYPE_VIDEO_RATE:

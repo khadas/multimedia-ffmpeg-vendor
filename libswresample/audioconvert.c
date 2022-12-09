@@ -148,6 +148,7 @@ AudioConvert *swri_audio_convert_alloc(enum AVSampleFormat out_fmt,
                                        int flags)
 {
     AudioConvert *ctx;
+    //coverity[Memory - illegal accesses]
     conv_func_type *f = fmt_pair_to_conv_functions[av_get_packed_sample_fmt(out_fmt) + AV_SAMPLE_FMT_NB*av_get_packed_sample_fmt(in_fmt)];
 
     if (!f)

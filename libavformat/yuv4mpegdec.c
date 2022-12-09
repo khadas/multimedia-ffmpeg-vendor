@@ -150,6 +150,7 @@ static int yuv4_read_header(AVFormatContext *s)
             case 'b':
                 field_order = AV_FIELD_BB;
                 break;
+            //coverity[Control flow issues]
             case 'm':
                 av_log(s, AV_LOG_ERROR, "YUV4MPEG stream contains mixed "
                        "interlaced and non-interlaced frames.\n");

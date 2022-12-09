@@ -64,6 +64,7 @@ static void add_metadata(AVFormatContext *s, uint32_t tag,
     avio_read(s->pb, buf, len);
     buf[len] = 0;
     AV_WL32(key, tag);
+    //coverity[Memory-corruptions]
     av_dict_set(&s->metadata, key, buf, AV_DICT_DONT_STRDUP_VAL);
 }
 

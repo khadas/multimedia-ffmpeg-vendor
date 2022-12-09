@@ -525,7 +525,9 @@ static void get_tag(AVFormatContext *s, AVIOContext *pb, const char *key, int ty
         return;
     }
 
+    //coverity[Memory-corruptions]
     av_dict_set(&s->metadata, key, buf, 0);
+    //coverity[Memory-corruptions]
     av_freep(&buf);
 }
 
@@ -549,6 +551,7 @@ static void parse_legacy_attrib(AVFormatContext *s, AVIOContext *pb)
             break;
         }
         avio_get_str16le(pb, INT_MAX, key, sizeof(key));
+        //coverity[Memory-corruptions]
         get_tag(s, pb, key, type, length);
     }
 
@@ -886,6 +889,7 @@ static int parse_chunks(AVFormatContext *s, int mode, int64_t seekts, int *len_p
                 avio_read(pb, language, 3);
                 if (language[0]) {
                     language[3] = 0;
+                    //coverity[Memory-corruptions]
                     av_dict_set(&st->metadata, "language", language, 0);
                     if (!strcmp(language, "nar") || !strcmp(language, "NAR"))
                         st->disposition |= AV_DISPOSITION_VISUAL_IMPAIRED;

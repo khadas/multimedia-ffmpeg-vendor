@@ -110,6 +110,9 @@ static inline int convert_frame(SwrContext *s,
 static inline int available_samples(AVFrame *out)
 {
     int bytes_per_sample = av_get_bytes_per_sample(out->format);
+    if (!bytes_per_sample)
+        return AVERROR(EINVAL);
+
     int samples = out->linesize[0] / bytes_per_sample;
 
     if (av_sample_fmt_is_planar(out->format)) {

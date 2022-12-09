@@ -41,6 +41,7 @@ static int yuv4_generate_header(AVFormatContext *s, char* buf)
     field_order = st->codecpar->field_order;
 
     // TODO: should be avg_frame_rate
+    //coverity[API usage errors]
     av_reduce(&raten, &rated, st->time_base.den,
               st->time_base.num, (1UL << 31) - 1);
 

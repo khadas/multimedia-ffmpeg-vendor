@@ -233,6 +233,7 @@ static inline int wav_parse_bext_string(AVFormatContext *s, const char *key,
     temp[length] = 0;
 
     if (strlen(temp))
+        //coverity[Memory-corruptions]
         return av_dict_set(&s->metadata, key, temp, 0);
 
     return 0;
@@ -245,6 +246,7 @@ static int wav_parse_bext_tag(AVFormatContext *s, int64_t size)
     uint64_t time_reference;
     int64_t umid_parts[8], umid_mask = 0;
 
+    //coverity[Memory-corruptions]
     if ((ret = wav_parse_bext_string(s, "description", 256)) < 0 ||
         (ret = wav_parse_bext_string(s, "originator", 32)) < 0 ||
         (ret = wav_parse_bext_string(s, "originator_reference", 32)) < 0 ||

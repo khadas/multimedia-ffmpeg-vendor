@@ -73,6 +73,7 @@ int swr_set_matrix(struct SwrContext *s, const double *matrix, int stride)
     nb_out = av_get_channel_layout_nb_channels(s->user_out_ch_layout);
     for (out = 0; out < nb_out; out++) {
         for (in = 0; in < nb_in; in++)
+            //coverity[Memory - corruptions]
             s->matrix_flt[out][in] = s->matrix[out][in] = matrix[in];
         matrix += stride;
     }
@@ -427,6 +428,7 @@ av_cold int swri_rematrix_init(SwrContext *s){
             return AVERROR(ENOMEM);
         for (i = 0; i < nb_out; i++)
             for (j = 0; j < nb_in; j++)
+                //coverity[Memory - illegal accesses]
                 ((float*)s->native_matrix)[i * nb_in + j] = s->matrix[i][j];
         *((float*)s->native_one) = 1.0;
         s->mix_1_1_f = (mix_1_1_func_type*)copy_float;

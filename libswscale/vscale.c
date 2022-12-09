@@ -155,6 +155,7 @@ static int packed_vscale(SwsContext *c, SwsFilterDescriptor *desc, int sliceY, i
             c->warned_unuseable_bilinear = 1;
         }
 
+        //coverity[Null pointer dereferences]
         inst->yuv2packedX(c, lum_filter + sliceY * lum_fsize,
                     (const int16_t**)src0, lum_fsize, chr_filter + chrSliceY * chr_fsize,
                     (const int16_t**)src1, (const int16_t**)src2, chr_fsize, (const int16_t**)src3, *dst, dstW, sliceY);

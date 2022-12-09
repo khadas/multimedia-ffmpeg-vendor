@@ -136,6 +136,7 @@ uint32_t av_get_random_seed(void)
     return arc4random();
 #endif
 
+    //coverity[Control flow issues]
     if (read_random(&seed, "/dev/urandom") == sizeof(seed))
         return seed;
     if (read_random(&seed, "/dev/random")  == sizeof(seed))

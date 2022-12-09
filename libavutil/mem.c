@@ -118,6 +118,7 @@ void mem_debug_free(void* ptr) {
         return;
     char ptr_str[256]={0};
     int len = sprintf(ptr_str,"[%lld] %16p\r\n",getTimestamp(),ptr);
+    //coverity[Control flow issues]
     if (0 > fwrite(ptr_str,1,len,free_debug_file)) {
         abort();
     }

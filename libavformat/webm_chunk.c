@@ -131,6 +131,7 @@ static int webm_chunk_write_header(AVFormatContext *s)
     if (ret < 0)
         return ret;
     if (wc->http_method)
+        //coverity[Memory-corruptions]
         av_dict_set(&options, "method", wc->http_method, 0);
     ret = s->io_open(s, &oc->pb, oc->filename, AVIO_FLAG_WRITE, &options);
     av_dict_free(&options);
@@ -182,6 +183,7 @@ static int chunk_end(AVFormatContext *s)
     if (ret < 0)
         goto fail;
     if (wc->http_method)
+        //coverity[Memory-corruptions]
         av_dict_set(&options, "method", wc->http_method, 0);
     ret = s->io_open(s, &pb, filename, AVIO_FLAG_WRITE, &options);
     if (ret < 0)

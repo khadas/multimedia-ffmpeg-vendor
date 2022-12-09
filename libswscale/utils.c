@@ -767,6 +767,7 @@ static void fill_rgb2yuv_table(SwsContext *c, const int table[4], int dstRange)
     if (!dstRange) {
         cy = cy * 255 / 219;
     } else {
+        //coverity[Control flow issues]
         vr = vr * 224 / 255;
         ub = ub * 224 / 255;
         ug = ug * 224 / 255;

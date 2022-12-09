@@ -133,6 +133,7 @@ static int wc3_read_header(AVFormatContext *s)
             if ((ret = avio_read(pb, buffer, size)) != size)
                 return AVERROR(EIO);
             buffer[size] = 0;
+            //coverity[Memory-corruptions]
             av_dict_set(&s->metadata, "title", buffer,
                                    AV_DICT_DONT_STRDUP_VAL);
             break;

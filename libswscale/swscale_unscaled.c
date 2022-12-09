@@ -952,6 +952,7 @@ static int planarRgbToRgbWrapper(SwsContext *c, const uint8_t *src[],
                          srcSliceH, c->srcW);
         break;
 
+        //coverity[Control flow issues]
     case AV_PIX_FMT_ARGB:
         alpha_first = 1;
     case AV_PIX_FMT_RGBA:
@@ -960,6 +961,7 @@ static int planarRgbToRgbWrapper(SwsContext *c, const uint8_t *src[],
                          srcSliceH, alpha_first, c->srcW);
         break;
 
+        //coverity[Control flow issues]
     case AV_PIX_FMT_ABGR:
         alpha_first = 1;
     case AV_PIX_FMT_BGRA:
@@ -1047,12 +1049,14 @@ static int rgbToPlanarRgbWrapper(SwsContext *c, const uint8_t *src[],
         packedtogbr24p((const uint8_t *) src[0], srcStride[0], dst102,
                        stride102, srcSliceH, alpha_first, 3, c->srcW);
         break;
+        //coverity[Control flow issues]
     case AV_PIX_FMT_ARGB:
         alpha_first = 1;
     case AV_PIX_FMT_RGBA:
         packedtogbr24p((const uint8_t *) src[0], srcStride[0], dst201,
                        stride201, srcSliceH, alpha_first, 4, c->srcW);
         break;
+        //coverity[Control flow issues]
     case AV_PIX_FMT_ABGR:
         alpha_first = 1;
     case AV_PIX_FMT_BGRA:

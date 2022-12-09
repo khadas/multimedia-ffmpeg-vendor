@@ -335,6 +335,7 @@ static ResampleContext *resample_init(ResampleContext *c, int out_rate, int in_r
             av_assert0(0);
         }
 
+        //coverity[Incorrect expression]
         if (filter_size/factor > INT32_MAX/256) {
             av_log(NULL, AV_LOG_ERROR, "Filter length too large\n");
             goto error;

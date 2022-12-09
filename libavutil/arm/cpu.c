@@ -57,6 +57,7 @@ static int get_hwcap(uint32_t *hwcap)
     if (!f)
         return -1;
 
+    //coverity[Error handling issues]
     while (fread(&auxv, sizeof(auxv), 1, f) > 0) {
         if (auxv.a_type == AT_HWCAP) {
             *hwcap = auxv.a_val;
@@ -139,6 +140,7 @@ int ff_get_cpu_flags_arm(void)
 
     /* set the virtual VFPv2 vector mode flag */
     if ((flags & AV_CPU_FLAG_VFP) && !(flags & (AV_CPU_FLAG_VFPV3 | AV_CPU_FLAG_NEON)))
+        //coverity[Control flow issues]
         flags |= AV_CPU_FLAG_VFP_VM;
 
     return flags;

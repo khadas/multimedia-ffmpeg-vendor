@@ -559,6 +559,7 @@ static int resample(SwrContext *s, AudioData *out_param, int out_count,
             if(s->in_buffer_count != count || in_count)
                 continue;
             if (padless) {
+                //coverity[Control flow issues]
                 padless = 0;
                 continue;
             }
