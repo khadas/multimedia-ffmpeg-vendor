@@ -177,6 +177,7 @@ static inline int silk_is_lpc_stable(const int16_t lpc[16], int order)
 
         /* approximate 1.0/gaindiv */
         fbits = opus_ilog(gaindiv);
+        //coverity[Integer handling issues]
         gain  = ((1 << 29) - 1) / (gaindiv >> (fbits + 1 - 16)); // Q<fbits-16>
         error = (1 << 29) - MULL(gaindiv << (15 + 16 - fbits), gain, 16);
         gain  = ((gain << 16) + (error * gain >> 13));
@@ -358,6 +359,7 @@ static inline void silk_decode_lpc(SilkContext *s, SilkFrame *frame,
     }
 
     /* stabilize the NLSF coefficients */
+    //coverity[Memory - corruptions]
     silk_stabilize_lsf(nlsf, order, s->wb ? ff_silk_lsf_min_spacing_wb :
                                             ff_silk_lsf_min_spacing_nbmb);
 
@@ -814,6 +816,7 @@ int ff_silk_decode_superframe(SilkContext *s, OpusRangeCoder *rc,
 
     for (i = 0; i < nb_frames; i++) {
         for (j = 0; j < coded_channels && !s->midonly; j++)
+            //coverity[Memory - corruptions]
             silk_decode_frame(s, rc, i, j, coded_channels, active[j][i], active[1][i]);
 
         /* reset the side channel if it is not coded */

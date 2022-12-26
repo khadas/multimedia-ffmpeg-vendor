@@ -144,6 +144,7 @@ static void count_colors(AVCodecContext *avctx, unsigned hits[33],
                     best_j = j;
                 }
             }
+            //coverity[Uninitialized variables]
             match += best_j;
         }
         hits[match] += count[i];

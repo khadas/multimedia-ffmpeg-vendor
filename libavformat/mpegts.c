@@ -1876,6 +1876,7 @@ int ff_parse_mpeg2_descriptor(AVFormatContext *fc, AVStream *st, int stream_type
 
                 if (st->codecpar->extradata == NULL) {
                     if (ff_alloc_extradata(st->codecpar, language_count * 2)) {
+                        //coverity[Resource leaks]
                         return AVERROR(ENOMEM);
                     }
                 }
@@ -1909,9 +1910,12 @@ int ff_parse_mpeg2_descriptor(AVFormatContext *fc, AVStream *st, int stream_type
                 }
 
                 language[i * 4 - 1] = 0;
+                //coverity[Memory - corruptions]
                 av_dict_set(&st->metadata, "language", language, 0);
+                //coverity[Memory - corruptions]
                 av_dict_set(&st->metadata, "teletext-info", teletext_info, 0);
                 sprintf(pages_number_info, "%d", language_count);
+                //coverity[Memory - corruptions]
                 av_dict_set_int(&st->metadata, "langcount", language_count, 0);
                 av_log(fc, AV_LOG_ERROR, "language:%s  teletext-info:%s language_count:%d\n", language, teletext_info, language_count);
                 st->internal->need_context_update = 1;
@@ -2508,12 +2512,16 @@ static void sdt_cb(MpegTSFilter *filter, const uint8_t *section, int section_len
                 if (name) {
                     AVProgram *program = av_new_program(ts->stream, sid);
                     if (program) {
+                        //coverity[Memory - corruptions]
                         av_dict_set(&program->metadata, "service_name", name, 0);
+                        //coverity[Memory - corruptions]
                         av_dict_set(&program->metadata, "service_provider",
                                     provider_name, 0);
                     }
                 }
+                //coverity[Memory - corruptions]
                 av_free(name);
+                //coverity[Memory - corruptions]
                 av_free(provider_name);
                 break;
             case 0x50:
@@ -2949,6 +2957,7 @@ static void check_ac3_dts(AVFormatContext * s)
                 if (ret != 0) {
                     return;
                 }
+                //coverity[Integer handling issues]
                 if ((c_pid != (AV_RB16(data + 1) & 0x1fff)) && (1 != (data[1] & 0x40))) {  //pid equal and must have pes/es header
                     continue;
                 }
@@ -2963,6 +2972,7 @@ static void check_ac3_dts(AVFormatContext * s)
                 }
                 //we found the pes header and parse
                 es_header_pos = data[pes_header_pos + 8] + 9 + pes_header_pos; //pes header size
+                //coverity[Integer handling issues]
                 if (data[es_header_pos] == 0x1F && data[es_header_pos + 1] == 0xFF && data[es_header_pos + 2] == 0xE8 && data[es_header_pos] == 0x00) {
                     s->streams[s_index]->codecpar->codec_id = AV_CODEC_ID_DTS;
                 }
@@ -3017,6 +3027,7 @@ static void check_aac_adts(AVFormatContext * s)
                 if (ret != 0) {
                     return;
                 }
+                //coverity[Integer handling issues]
                 if ((c_pid != (AV_RB16(data + 1) & 0x1fff)) && (1 != (data[1] & 0x40))) {  //pid equal and must have pes/es header
                     continue;
                 }
@@ -3060,6 +3071,7 @@ static void check_aac_adts(AVFormatContext * s)
 
                 csd[0] = ((profile + 1) << 3) | (sampling_freq_index >> 1);
                 csd[1] = ((sampling_freq_index << 7) & 0x80) | (channel_configuration << 3);
+                //coverity[Memory - corruptions]
                 av_dict_set_int(&s->streams[s_index]->metadata, "aac_adts_csd", ((csd[0] << 8) | csd[1]), 0);
                 break;
             }

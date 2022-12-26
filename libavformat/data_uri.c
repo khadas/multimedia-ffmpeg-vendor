@@ -40,6 +40,7 @@ static av_cold int data_open(URLContext *h, const char *uri, int flags)
 
     /* data:content/type[;base64],payload */
 
+    //coverity[Error handling issues]
     av_strstart(uri, "data:", &uri);
     data = strchr(uri, ',');
     if (!data) {

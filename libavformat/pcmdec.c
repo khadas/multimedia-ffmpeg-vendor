@@ -68,6 +68,7 @@ static int pcm_read_header(AVFormatContext *s)
                 av_log(s, AV_LOG_ERROR,
                        "Invalid sample_rate found in mime_type \"%s\"\n",
                        mime_type);
+                //coverity[Resource leaks]
                 return AVERROR_INVALIDDATA;
             }
             st->codecpar->sample_rate = rate;

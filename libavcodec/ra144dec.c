@@ -90,6 +90,7 @@ static int ra144_decode_frame(AVCodecContext * avctx, void *data,
         return ret;
     samples = (int16_t *)frame->data[0];
 
+    //coverity[Error handling issues]
     init_get_bits8(&gb, buf, FRAME_SIZE);
 
     for (i = 0; i < LPC_ORDER; i++)

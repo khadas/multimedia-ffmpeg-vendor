@@ -91,6 +91,7 @@ static int mov_metadata_track_or_disc_number(MOVContext *c, AVIOContext *pb,
     else
         snprintf(buf, sizeof(buf), "%d/%d", current, total);
     c->fc->event_flags |= AVFMT_EVENT_FLAG_METADATA_UPDATED;
+    //coverity[Memory - corruptions]
     av_dict_set(&c->fc->metadata, key, buf, 0);
 
     return 0;
@@ -197,6 +198,7 @@ static int mov_metadata_3gp_matadata(MOVContext *c, AVIOContext *pb,
         if (isUTF8) {
             buf[len] = 0;
             c->fc->event_flags |= AVFMT_EVENT_FLAG_METADATA_UPDATED;
+            //coverity[Memory-corruptions]
             av_dict_set(&c->fc->metadata, key, (const char *)buf + 6, 0);
         } else {
             memset(buf, 0, len + 1);
@@ -208,6 +210,7 @@ static int mov_metadata_3gp_matadata(MOVContext *c, AVIOContext *pb,
         }
     }
 
+    //coverity[Memory - corruptions]
     av_freep(&buf);
     return 0;
 }
@@ -360,9 +363,11 @@ static int mov_metadata_loci(MOVContext *c, AVIOContext *pb, unsigned len)
     if (*language && strcmp(language, "und")) {
         char key2[16];
         snprintf(key2, sizeof(key2), "%s-%s", key, language);
+        //coverity[Memory - corruptions]
         av_dict_set(&c->fc->metadata, key2, buf, 0);
     }
     c->fc->event_flags |= AVFMT_EVENT_FLAG_METADATA_UPDATED;
+    //coverity[Memory - corruptions]
     return av_dict_set(&c->fc->metadata, key, buf, 0);
 }
 
@@ -606,10 +611,13 @@ retry:
         c->fc->event_flags |= AVFMT_EVENT_FLAG_METADATA_UPDATED;
         if (strcmp(key, "title") || c->itunes_metadata
             || !av_dict_get(c->fc->metadata, "title", NULL, 0)) {
+            //coverity[Memory-corruptions]
             av_dict_set(&c->fc->metadata, key, str, 0);
         }
         if (*language && strcmp(language, "und")) {
+            //coverity[Memory - illegal accesses]
             snprintf(key2, sizeof(key2), "%s-%s", key, language);
+            //coverity[Memory-corruptions]
             av_dict_set(&c->fc->metadata, key2, str, 0);
         }
         if (!strcmp(key, "encoder")) {
@@ -620,6 +628,7 @@ retry:
         }
     }
 
+    //coverity[Various]
     av_freep(&str);
     return 0;
 }
@@ -657,6 +666,7 @@ static int mov_read_chpl(MOVContext *c, AVIOContext *pb, MOVAtom atom)
         if (ret < 0)
             return ret;
         str[str_len] = 0;
+        //coverity[Memory-corruptions]
         avpriv_new_chapter(c->fc, i, (AVRational){1,10000000}, start, AV_NOPTS_VALUE, str);
     }
     return 0;
@@ -857,6 +867,7 @@ static int mov_read_hdlr(MOVContext *c, AVIOContext *pb, MOVAtom atom)
         title_str[title_size] = 0;
         if (title_str[0]) {
             int off = (!c->isom && title_str[0] == title_size - 1);
+            //coverity[Memory - corruptions]
             av_dict_set(&st->metadata, "handler_name", title_str + off, 0);
         }
         av_freep(&title_str);
@@ -1221,8 +1232,10 @@ static int mov_read_ftyp(MOVContext *c, AVIOContext *pb, MOVAtom atom)
     if (strcmp(type, "qt  "))
         c->isom = 1;
     av_log(c->fc, AV_LOG_DEBUG, "ISO: File Type Major Brand: %.4s\n",(char *)&type);
+    //coverity[Memory - corruptions]
     av_dict_set(&c->fc->metadata, "major_brand", type, 0);
     minor_ver = avio_rb32(pb); /* minor version */
+    //coverity[Memory - corruptions]
     av_dict_set_int(&c->fc->metadata, "minor_version", minor_ver, 0);
 
     comp_brand_size = atom.size - 8;
@@ -1239,6 +1252,7 @@ static int mov_read_ftyp(MOVContext *c, AVIOContext *pb, MOVAtom atom)
     }
     comp_brands_str[comp_brand_size] = 0;
     av_dict_set(&c->fc->metadata, "compatible_brands", comp_brands_str, 0);
+    //coverity[Memory - corruptions]
     av_freep(&comp_brands_str);
 
     return 0;
@@ -1298,6 +1312,7 @@ static void mov_metadata_creation_time(AVDictionary **metadata, int64_t time)
             return;
         }
 
+        //coverity[Memory-corruptions]
         avpriv_dict_set_timestamp(metadata, "creation_time", time * 1000000);
     }
 }
@@ -1345,6 +1360,7 @@ static int mov_read_mdhd(MOVContext *c, AVIOContext *pb, MOVAtom atom)
 
     lang = avio_rb16(pb); /* language */
     if (ff_mov_lang_to_iso639(lang, language))
+       //coverity[Memory - corruptions]
         av_dict_set(&st->metadata, "language", language, 0);
     avio_rb16(pb); /* quality */
 
@@ -2170,6 +2186,7 @@ static void mov_parse_stsd_video(MOVContext *c, AVIOContext *pb,
         avio_skip(pb, 31 - len);
 
     if (codec_name[0])
+        //coverity[Memory - corruptions]
         av_dict_set(&st->metadata, "encoder", codec_name, 0);
 
     /* codec_tag YV12 triggers an UV swap in rawdec.c */
@@ -2420,6 +2437,7 @@ FF_ENABLE_DEPRECATION_WARNINGS
                         if (*reel_name == 0) {
                             av_free(reel_name);
                         } else {
+                        //coverity[Memory-corruptions]
                             av_dict_set(&st->metadata, "reel_name", reel_name,  AV_DICT_DONT_STRDUP_VAL);
                         }
                     }
@@ -2570,6 +2588,7 @@ int ff_mov_read_stsd_entries(MOVContext *c, AVIOContext *pb, int entries)
 
         id = mov_codec_id(st, format);
         if (size != 36 && format == MKTAG('s','a','w','b')) {
+            //coverity[Memory - corruptions]
             av_dict_set(&c->fc->metadata, "amextractor_info", "sawb", 0);
             av_log(c->fc, AV_LOG_ERROR, "set amextractor_info sawb\n");
         }
@@ -3607,6 +3626,7 @@ static void mov_fix_index(MOVContext *mov, AVStream *st)
     current_index_range->start = 0;
     current_index_range->end = 0;
     msc->current_index = msc->index_ranges[0].start;
+    //coverity[Resource leaks]
 }
 
 static void mov_build_index(MOVContext *mov, AVStream *st)
@@ -4365,6 +4385,7 @@ static int mov_read_tkhd(MOVContext *c, AVIOContext *pb, MOVAtom atom)
             if (rotate < 0) // for backward compatibility
                 rotate += 360;
             snprintf(rotate_buf, sizeof(rotate_buf), "%g", rotate);
+            //coverity[Memory-corruptions]
             av_dict_set(&st->metadata, "rotate", rotate_buf, 0);
         }
 #endif
@@ -4770,6 +4791,7 @@ static int mov_read_sidx(MOVContext *c, AVIOContext *pb, MOVAtom atom)
             st = c->fc->streams[i];
             sc = st->priv_data;
             if (!sc->has_sidx) {
+                //coverity[Null pointer dereferences]
                 st->duration = sc->track_end = av_rescale(ref_st->duration, sc->time_scale, ref_sc->time_scale);
             }
         }
@@ -5235,7 +5257,9 @@ static int mov_read_uuid(MOVContext *c, AVIOContext *pb, MOVAtom atom)
                 return AVERROR_INVALIDDATA;
             }
             buffer[len] = '\0';
+            //coverity[Memory - corruptions]
             av_dict_set(&c->fc->metadata, "xmp", buffer, 0);
+            //coverity[Memory - corruptions]
             av_free(buffer);
         } else {
             // skip all uuid atom, which makes it fast for long uuid-xmp file
@@ -5472,7 +5496,9 @@ static void mov_id32_date2year(AVDictionary **m)
 {
     AVDictionaryEntry *t = NULL;
     if (t = av_dict_get(*m, "date", t, AV_DICT_MATCH_CASE)) {
+        //coverity[Memory - corruptions]
         av_dict_set(m, "year", t->value, 0);
+        //coverity[Memory - illegal accesses]
         av_log(NULL, AV_LOG_INFO, "[%s:%d] date:%s\n", __FUNCTION__, __LINE__, t->value);
     }
 }
@@ -5993,6 +6019,7 @@ static void mov_read_chapters(AVFormatContext *s)
                 }
 
                 avpriv_new_chapter(s, i, st->time_base, sample->timestamp, end, title);
+                //coverity[Memory-corruptions]
                 av_freep(&title);
             }
         }
@@ -6010,6 +6037,7 @@ static int parse_timecode_in_framenum_format(AVFormatContext *s, AVStream *st,
     int ret = av_timecode_init(&tc, rate, flags, 0, s);
     if (ret < 0)
         return ret;
+    //coverity[Memory-corruptions]
     av_dict_set(&st->metadata, "timecode",
                 av_timecode_make_string(&tc, buf, value), 0);
     return 0;
@@ -6034,6 +6062,7 @@ static int mov_read_rtmd_track(AVFormatContext *s, AVStream *st)
     ff = avio_r8(s->pb);
     snprintf(buf, AV_TIMECODE_STR_SIZE, "%02d:%02d:%02d%c%02d",
              hh, mm, ss, drop ? ';' : ':', ff);
+    //coverity[Memory-corruptions]
     av_dict_set(&st->metadata, "timecode", buf, 0);
 
     avio_seek(sc->pb, cur_pos, SEEK_SET);
@@ -6179,6 +6208,7 @@ static void export_orphan_timecode(AVFormatContext *s)
             !tmcd_is_referenced(s, i + 1)) {
             AVDictionaryEntry *tcr = av_dict_get(st->metadata, "timecode", NULL, 0);
             if (tcr) {
+                //coverity[Memory-corruptions]
                 av_dict_set(&s->metadata, "timecode", tcr->value, 0);
                 break;
             }
@@ -6358,6 +6388,7 @@ static int mov_read_header(AVFormatContext *s)
                 continue;
             tcr = av_dict_get(s->streams[tmcd_st_id]->metadata, "timecode", NULL, 0);
             if (tcr)
+                //coverity[Memory-corruptions]
                 av_dict_set(&st->metadata, "timecode", tcr->value, 0);
         }
     }
@@ -6415,6 +6446,7 @@ static int mov_read_header(AVFormatContext *s)
             psshsize += 20 + mov->pssh_info[i].data_len;
         }
 
+        //coverity[Integer handling issues]
         if (psshsize > 0 && psshsize <= UINT32_MAX) {
             s->pssh_info = (char*)av_mallocz(psshsize);
             s->pssh_len = psshsize;
@@ -6769,6 +6801,7 @@ static int mov_seek_stream(AVFormatContext *s, AVStream *st, int64_t timestamp, 
     MOVStreamContext *sc = st->priv_data;
     int sample, time_sample;
     int i;
+    sample = 0;
 
     int ret = mov_seek_fragment(s, st, timestamp);
     if (ret < 0)

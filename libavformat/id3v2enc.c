@@ -128,6 +128,7 @@ static void id3v2_3_metadata_split_date(AVDictionary **pm)
             while (value[i] >= '0' && value[i] <= '9') i++;
             if (value[i] == '\0' || value[i] == '-') {
                 av_strlcpy(year, value, sizeof(year));
+                //coverity[Memory-corruptions]
                 av_dict_set(&dst, "TYER", year, 0);
 
                 if (value[i] == '-' &&
@@ -138,9 +139,11 @@ static void id3v2_3_metadata_split_date(AVDictionary **pm)
                     value[i+5] >= '0' && value[i+5] <= '9' &&
                     (value[i+6] == '\0' || value[i+6] == ' ')) {
                     snprintf(day_month, sizeof(day_month), "%.2s%.2s", value + i + 4, value + i + 1);
+                    //coverity[Memory-corruptions]
                     av_dict_set(&dst, "TDAT", day_month, 0);
                 }
             } else
+            //coverity[Memory-corruptions]
                 av_dict_set(&dst, key, value, 0);
         } else
             av_dict_set(&dst, key, mtag->value, 0);

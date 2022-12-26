@@ -84,6 +84,7 @@ static int tee_open(URLContext *h, const char *filename, int flags)
     TeeContext *c = h->priv_data;
     int ret, i;
 
+    //coverity[Error handling issues]
     av_strstart(filename, "tee:", &filename);
 
     if (flags & AVIO_FLAG_READ)

@@ -494,7 +494,7 @@ static void decode_fixed_vector(float *fixed_vector, const uint16_t *pulse_hi,
 {
     /* sig_pos stores for each track the decoded pulse position indexes
      * (1-based) multiplied by its corresponding amplitude (+1 or -1) */
-    int sig_pos[4][6];
+    int sig_pos[4][6] = {0};
     int spacing = (mode == MODE_6k60) ? 2 : 4;
     int i, j;
 

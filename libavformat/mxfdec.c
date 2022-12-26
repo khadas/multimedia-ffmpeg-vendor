@@ -1650,6 +1650,7 @@ static int mxf_add_umid_metadata(AVDictionary **pm, const char *key, MXFPackage*
 static int mxf_add_timecode_metadata(AVDictionary **pm, const char *key, AVTimecode *tc)
 {
     char buf[AV_TIMECODE_STR_SIZE];
+    //coverity[Memory - corruptions]
     av_dict_set(pm, key, av_timecode_make_string(tc, buf, 0), 0);
 
     return 0;
@@ -1804,10 +1805,12 @@ static int mxf_parse_physical_source_package(MXFContext *mxf, MXFTrack *source_t
         if (!(physical_package = mxf_resolve_source_package(mxf, sourceclip->source_package_uid)))
             break;
 
+        //coverity[Memory - corruptions]
         mxf_add_umid_metadata(&st->metadata, "reel_umid", physical_package);
 
         /* the name of physical source package is name of the reel or tape */
         if (physical_package->name && physical_package->name[0])
+            //coverity[Memory - corruptions]
             av_dict_set(&st->metadata, "reel_name", physical_package->name, 0);
 
         /* the source timecode is calculated by adding the start_position of the sourceclip from the file source package track
@@ -1909,8 +1912,10 @@ static int mxf_parse_structural_metadata(MXFContext *mxf)
         return AVERROR_INVALIDDATA;
     }
 
+    //coverity[Memory - corruptions]
     mxf_add_umid_metadata(&mxf->fc->metadata, "material_package_umid", material_package);
     if (material_package->name && material_package->name[0])
+        //coverity[Memory - corruptions]
         av_dict_set(&mxf->fc->metadata, "material_package_name", material_package->name, 0);
     mxf_parse_package_comments(mxf, &mxf->fc->metadata, material_package);
 
@@ -2321,15 +2326,19 @@ static int mxf_read_identification_metadata(void *arg, AVIOContext *pb, int tag,
     uint64_t ts;
     switch (tag) {
     case 0x3C01:
+        //coverity[Memory - corruptions]
         SET_STR_METADATA(pb, "company_name", str);
         break;
     case 0x3C02:
+        //coverity[Memory - corruptions]
         SET_STR_METADATA(pb, "product_name", str);
         break;
     case 0x3C04:
+        //coverity[Memory - corruptions]
         SET_STR_METADATA(pb, "product_version", str);
         break;
     case 0x3C05:
+        //coverity[Memory - corruptions]
         SET_UID_METADATA(pb, "product_uid", uid, str);
         break;
     case 0x3C06:
@@ -2356,6 +2365,7 @@ static int mxf_read_preface_metadata(void *arg, AVIOContext *pb, int tag, int si
     char *str = NULL;
 
     if (tag >= 0x8000 && (IS_KLV_KEY(uid, mxf_avid_project_name))) {
+        //coverity[Memory - corruptions]
         SET_STR_METADATA(pb, "project_name", str);
     }
     return 0;
@@ -3029,6 +3039,7 @@ static int mxf_compute_sample_count(MXFContext *mxf, int stream_index,
 
     av_assert2(size);
 
+    //coverity[Integer handling issues]
     *sample_count = (mxf->current_edit_unit / size) * (uint64_t)total;
     for (i = 0; i < mxf->current_edit_unit % size; i++) {
         *sample_count += spf->samples_per_frame[i];

@@ -603,6 +603,7 @@ static av_always_inline void decode_subband_internal(DiracContext *s, SubBand *b
     if (!b->length)
         return;
 
+    //coverity[Error handling issues]
     init_get_bits8(&gb, b->coeff_data, b->length);
 
     if (is_arith)

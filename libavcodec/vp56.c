@@ -516,6 +516,7 @@ static int vp56_size_changed(VP56Context *s)
     s->mb_height = (avctx->coded_height+15) / 16;
 
     if (s->mb_width > 1000 || s->mb_height > 1000) {
+        //coverity[Error handling issues]
         ff_set_dimensions(avctx, 0, 0);
         av_log(avctx, AV_LOG_ERROR, "picture too big\n");
         return AVERROR_INVALIDDATA;
@@ -523,6 +524,7 @@ static int vp56_size_changed(VP56Context *s)
 
     av_reallocp_array(&s->above_blocks, 4*s->mb_width+6,
                       sizeof(*s->above_blocks));
+    //coverity[Error handling issues]
     av_reallocp_array(&s->macroblocks, s->mb_width*s->mb_height,
                       sizeof(*s->macroblocks));
     av_free(s->edge_emu_buffer_alloc);

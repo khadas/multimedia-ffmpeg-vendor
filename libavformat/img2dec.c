@@ -372,7 +372,7 @@ int ff_img_read_header(AVFormatContext *s1)
 int ff_img_read_packet(AVFormatContext *s1, AVPacket *pkt)
 {
     VideoDemuxData *s = s1->priv_data;
-    char filename_bytes[1024];
+    char filename_bytes[1024] = {0};
     char *filename = filename_bytes;
     int i, res;
     int size[3]           = { 0 }, ret[3] = { 0 };

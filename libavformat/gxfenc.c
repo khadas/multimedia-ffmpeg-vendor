@@ -447,8 +447,11 @@ static int gxf_write_umf_material_description(AVFormatContext *s)
                                gxf->tc.ss, gxf->tc.ff);
 
     nb_fields = gxf->nb_fields +
+        //coverity[Integer handling issues]
                 gxf->tc.hh * (timecode_base * 3600) +
+                //coverity[Integer handling issues]
                 gxf->tc.mm * (timecode_base * 60)   +
+                //coverity[Integer handling issues]
                 gxf->tc.ss * timecode_base          +
                 gxf->tc.ff;
 

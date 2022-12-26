@@ -272,6 +272,7 @@ static void mp3_parse_info_tag(AVFormatContext *s, AVStream *st,
 
     if (v == crc) {
         ff_replaygain_export_raw(st, r_gain, peak, a_gain, 0);
+        //coverity[Memory - corruptions]
         av_dict_set(&st->metadata, "encoder", version, 0);
     }
 }

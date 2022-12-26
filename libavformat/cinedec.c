@@ -84,6 +84,7 @@ static int set_metadata_float(AVDictionary **dict, const char *key, float value,
     if (value != 0 || allow_zero) {
         char tmp[64];
         snprintf(tmp, sizeof(tmp), "%f", value);
+        //coverity[Memory-corruptions]
         return av_dict_set(dict, key, tmp, 0);
     }
     return 0;

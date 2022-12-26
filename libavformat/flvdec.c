@@ -322,6 +322,7 @@ static int flv_set_video_codec(AVFormatContext *s, AVStream *vstream,
             par->codec_id = AV_CODEC_ID_VP6A;
         if (read) {
             if (par->extradata_size != 1) {
+                //coverity[Error handling issues]
                 ff_alloc_extradata(par, 1);
             }
             if (par->extradata)
@@ -628,11 +629,14 @@ static int amf_parse_object(AVFormatContext *s, AVStream *astream,
         if (amf_type == AMF_DATA_TYPE_BOOL) {
             av_strlcpy(str_val, num_val > 0 ? "true" : "false",
                        sizeof(str_val));
+            //coverity[Memory-corruptions]
             av_dict_set(&s->metadata, key, str_val, 0);
         } else if (amf_type == AMF_DATA_TYPE_NUMBER) {
             snprintf(str_val, sizeof(str_val), "%.f", num_val);
+            //coverity[Memory-corruptions]
             av_dict_set(&s->metadata, key, str_val, 0);
         } else if (amf_type == AMF_DATA_TYPE_STRING)
+            //coverity[Memory-corruptions]
             av_dict_set(&s->metadata, key, str_val, 0);
     }
 
@@ -698,6 +702,7 @@ static int flv_read_metabody(AVFormatContext *s, int64_t next_pos)
     }
 
     // parse the second object (we want a mixed array)
+    //coverity[Memory-corruptions]
     if (amf_parse_object(s, astream, vstream, buffer, next_pos, 0) < 0)
         return -1;
 
@@ -946,6 +951,7 @@ retry:
         size = avio_rb24(s->pb);
         flv->sum_flv_tag_size += size + 11;
         dts  = avio_rb24(s->pb);
+        //coverity[Integer handling issues]
         dts |= (unsigned)avio_r8(s->pb) << 24;
         av_log(s, AV_LOG_TRACE, "type:%d, size:%d, last:%d, dts:%"PRId64" pos:%"PRId64"\n", type, size, last, dts, avio_tell(s->pb));
         if (avio_feof(s->pb))

@@ -111,9 +111,13 @@ static int next_tag_read(AVFormatContext *avctx, uint64_t *fsize)
         av_dict_set(&avctx->metadata, name, buf, 0); \
     }
 
+    //coverity[Memory-corruptions]
     GET_EFI2_META("filename",  12)
+    //coverity[Memory-corruptions]
     GET_EFI2_META("author",    20)
+    //coverity[Memory-corruptions]
     GET_EFI2_META("publisher", 20)
+    //coverity[Memory-corruptions]
     GET_EFI2_META("title",     35)
 
     return 0;

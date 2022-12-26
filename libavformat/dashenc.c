@@ -230,6 +230,7 @@ static void output_segment_list(OutputStream *os, AVIOContext *out, DASHContext 
                     avio_printf(out, "r=\"%d\" ", repeat);
                 avio_printf(out, "/>\n");
                 i += 1 + repeat;
+                //coverity[Integer handling issues]
                 cur_time += (1 + repeat) * seg->duration;
             }
             avio_printf(out, "\t\t\t\t\t</SegmentTimeline>\n");

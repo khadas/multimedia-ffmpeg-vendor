@@ -560,6 +560,7 @@ do {\
 
     s->last_picture_ptr    = REBASE_PICTURE(s1->last_picture_ptr,    s, s1);
     s->current_picture_ptr = REBASE_PICTURE(s1->current_picture_ptr, s, s1);
+    //coverity[Null pointer dereferences]
     s->next_picture_ptr    = REBASE_PICTURE(s1->next_picture_ptr,    s, s1);
 
     // Error/bug resilience
@@ -592,8 +593,10 @@ do {\
             }
         }
         s->bitstream_buffer_size = s1->bitstream_buffer_size;
+            //coverity[Null pointer dereferences]
         memcpy(s->bitstream_buffer, s1->bitstream_buffer,
                s1->bitstream_buffer_size);
+            //coverity[Null pointer dereferences]
         memset(s->bitstream_buffer + s->bitstream_buffer_size, 0,
                AV_INPUT_BUFFER_PADDING_SIZE);
     }

@@ -421,6 +421,7 @@ static int segment_end(AVFormatContext *s, int write_trailer, int is_last)
                         break;
                     }
                     tc.start += (int)((seg->cur_entry.end_time - seg->cur_entry.start_time) * av_q2d(rate));/* increment timecode */
+                    //coverity[Memory - corruptions]
                     av_dict_set(&s->metadata, "timecode",
                                 av_timecode_make_string(&tc, buf, 0), 0);
                     break;
@@ -760,6 +761,7 @@ static int seg_init(AVFormatContext *s)
     }
 
     av_dict_copy(&options, seg->format_options, 0);
+    //coverity[Memory - corruptions]
     av_dict_set(&options, "fflags", "-autobsf", 0);
     ret = avformat_init_output(oc, &options);
     if (av_dict_count(options)) {

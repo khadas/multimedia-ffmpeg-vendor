@@ -77,6 +77,7 @@ static int encode_frame(AVCodecContext *avctx, AVPacket *pkt,
                 memcpy(luma_tmp, luma, avctx->width - x);
                 luma = luma_tmp;
             }
+            //coverity[Memory - illegal accesses]
             put_bits(&pb, 5, (249*(luma[3] +  (dither>>29)   )) >> 11);
             put_bits(&pb, 5, (249*(luma[2] + ((dither>>26)&7))) >> 11);
             put_bits(&pb, 5, (249*(luma[1] + ((dither>>23)&7))) >> 11);

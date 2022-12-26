@@ -74,6 +74,7 @@ static int smjpeg_read_header(AVFormatContext *s)
                 return AVERROR_INVALIDDATA;
             }
             comment[hlength] = 0;
+            //coverity[Memory - corruptions]
             av_dict_set(&s->metadata, "comment", comment,
                         AV_DICT_DONT_STRDUP_VAL);
             break;

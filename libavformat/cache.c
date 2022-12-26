@@ -75,6 +75,7 @@ static int cache_open(URLContext *h, const char *arg, int flags, AVDictionary **
     char *buffername;
     Context *c= h->priv_data;
 
+    //coverity[Error handling issues]
     av_strstart(arg, "cache:", &arg);
 
     c->fd = avpriv_tempfile("ffcache", &buffername, 0, h);

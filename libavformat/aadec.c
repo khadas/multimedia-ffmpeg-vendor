@@ -122,6 +122,7 @@ static int aa_read_header(AVFormatContext *s)
                 av_log(s, AV_LOG_DEBUG, "%02x", header_key[i]);
             av_log(s, AV_LOG_DEBUG, "\n");
         } else {
+            //coverity[Memory-corruptions]
             av_dict_set(&s->metadata, key, val, 0);
         }
     }

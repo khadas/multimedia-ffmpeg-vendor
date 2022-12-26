@@ -54,6 +54,7 @@ static int add_timecode_metadata(AVDictionary **pm, const char *key, uint32_t ti
        return 0;
    snprintf(tmp, sizeof(tmp), "%02d:%02d:%02d%c%02d",
        hour, minute, second, drop ? ';' : ':', frame);
+   //coverity[Memory-corruptions]
    return av_dict_set(pm, key, tmp, 0);
 }
 
@@ -368,6 +369,7 @@ static int gxf_header(AVFormatContext *s) {
         gxf_track_tags(pb, &track_len, si);
         // check for timecode tracks
         if (track_type == 7 || track_type == 8 || track_type == 24) {
+            //coverity[Memory-corruptions]
             add_timecode_metadata(&s->metadata, "timecode",
                                   si->track_aux_data & 0xffffffff,
                                   si->fields_per_frame);

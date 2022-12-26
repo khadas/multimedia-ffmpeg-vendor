@@ -306,6 +306,7 @@ static int mpc8_decode_frame(AVCodecContext * avctx, void *data,
         }
     }
     for(i = maxband; i < c->maxbands; i++)
+        //coverity[Memory - corruptions]
         bands[i].res[0] = bands[i].res[1] = 0;
 
     if(keyframe){

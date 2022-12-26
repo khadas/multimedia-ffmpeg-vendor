@@ -1849,6 +1849,7 @@ FF_ENABLE_DEPRECATION_WARNINGS
                 for(y=0; y<h; y++){
                     for(x=0; x<w; x++){
                         int d= s->current_picture->data[plane_index][y*s->current_picture->linesize[plane_index] + x] - pict->data[plane_index][y*pict->linesize[plane_index] + x];
+                        //coverity[Integer handling issues]
                         error += d*d;
                     }
                 }

@@ -1230,6 +1230,7 @@ int avio_accept(AVIOContext *s, AVIOContext **c)
     URLContext *cc = NULL;
     ret = ffurl_accept(sc, &cc);
     if (ret < 0)
+        //coverity[Resource leaks]
         return ret;
     return ffio_fdopen(c, cc);
 }

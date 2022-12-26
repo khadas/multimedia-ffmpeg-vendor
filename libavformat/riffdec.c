@@ -291,6 +291,7 @@ int ff_read_riff_info(AVFormatContext *s, int64_t size)
                    "premature end of file while reading INFO tag\n");
         }
 
+        //coverity[Memory - corruptions]
         av_dict_set(&s->metadata, key, value, AV_DICT_DONT_STRDUP_VAL);
     }
 

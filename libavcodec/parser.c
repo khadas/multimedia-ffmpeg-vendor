@@ -179,6 +179,7 @@ int av_parser_parse2(AVCodecParserContext *s, AVCodecContext *avctx,
         ff_fetch_timestamp(s, 0, 0, 0);
     }
     /* WARNING: the returned index can be negative */
+    //coverity[Memory - illegal accesses]
     index = s->parser->parser_parse(s, avctx, (const uint8_t **) poutbuf,
                                     poutbuf_size, buf, buf_size);
     av_assert0(index > -0x20000000); // The API does not allow returning AVERROR codes

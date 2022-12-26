@@ -229,7 +229,7 @@ static inline int parse_nal_units(AVCodecParserContext *s, const uint8_t *buf,
     nal = &pkt->nals[0];
 
     for (;;) {
-        int src_length, consumed;
+        int src_length = 0, consumed;
         int ret;
         int num = 0, den = 0;
 

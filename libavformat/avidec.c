@@ -310,6 +310,7 @@ static int avi_read_tag(AVFormatContext *s, AVStream *st, uint32_t tag,
 
     AV_WL32(key, tag);
 
+    //coverity[Memory-corruptions]
     return av_dict_set(st ? &st->metadata : &s->metadata, key, value,
                        AV_DICT_DONT_STRDUP_VAL);
 }
@@ -328,6 +329,7 @@ static void avi_metadata_creation_time(AVDictionary **metadata, char *date)
             if (!av_strcasecmp(month, months[i])) {
                 snprintf(buffer, sizeof(buffer), "%.4d-%.2d-%.2d %s",
                          year, i + 1, day, time);
+                //coverity[Memory-corruptions]
                 av_dict_set(metadata, "creation_time", buffer, 0);
             }
     } else if (date[4] == '/' && date[7] == '/') {
@@ -530,6 +532,7 @@ static int avi_read_header(AVFormatContext *s)
             size += (size & 1);
             size -= avio_read(pb, date, FFMIN(size, sizeof(date) - 1));
             avio_skip(pb, size);
+            //coverity[Memory-corruptions]
             avi_metadata_creation_time(&s->metadata, date);
             break;
         }
@@ -1073,6 +1076,7 @@ static int read_gab2_sub(AVFormatContext *s, AVStream *st, AVPacket *pkt)
         ret = avio_get_str16le(pb, desc_len, desc, sizeof(desc));
         avio_skip(pb, desc_len - ret);
         if (*desc)
+            //coverity[Memory-corruptions]
             av_dict_set(&st->metadata, "title", desc, 0);
 
         avio_rl16(pb);   /* flags? */

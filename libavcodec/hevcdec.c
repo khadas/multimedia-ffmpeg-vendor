@@ -989,7 +989,9 @@ static int hls_transform_unit(HEVCContext *s, int x0, int y0,
                     av_log(s->avctx, AV_LOG_ERROR,
                         "cu_chroma_qp_offset_idx not yet tested.\n");
                 }
+                //coverity[Memory - illegal accesses]
                 lc->tu.cu_qp_offset_cb = s->ps.pps->cb_qp_offset_list[cu_chroma_qp_offset_idx];
+                //coverity[Memory - illegal accesses]
                 lc->tu.cu_qp_offset_cr = s->ps.pps->cr_qp_offset_list[cu_chroma_qp_offset_idx];
             } else {
                 lc->tu.cu_qp_offset_cb = 0;

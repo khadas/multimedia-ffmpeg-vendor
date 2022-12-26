@@ -300,6 +300,7 @@ static inline int parse_nal_units(AVCodecParserContext *s,
             }
             break;
         }
+        //coverity[Null pointer dereferences]
         consumed = ff_h2645_extract_rbsp(buf + buf_index, src_length, &nal, 1);
         if (consumed < 0)
             break;

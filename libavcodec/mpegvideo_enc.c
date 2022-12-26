@@ -1564,6 +1564,7 @@ static int estimate_best_b_count(MpegEncContext *s)
                 goto fail;
             }
 
+            //coverity[Integer handling issues]
             rd += (out_size * lambda2) >> (FF_LAMBDA_SHIFT - 3);
         }
 

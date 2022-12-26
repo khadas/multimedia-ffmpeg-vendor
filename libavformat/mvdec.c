@@ -242,6 +242,7 @@ static int read_table(AVFormatContext *avctx, AVStream *st,
             av_log(avctx, AV_LOG_ERROR, "entry size %d is invalid\n", size);
             return AVERROR_INVALIDDATA;
         }
+        //coverity[Memory - corruptions]
         if (parse(avctx, st, name, size) < 0) {
             avpriv_request_sample(avctx, "Variable %s", name);
             avio_skip(pb, size);

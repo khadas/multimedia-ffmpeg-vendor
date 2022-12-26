@@ -790,6 +790,7 @@ static void celt_quant_bands(OpusEncContext *s, OpusRangeCoder *rc, CeltFrame *f
                                         effective_lowband != -1 ? norm + (effective_lowband << f->size) : NULL, f->size,
                                         norm + band_offset, 0, 1.0f, lowband_scratch, cm[0]);
 
+            //coverity[Null pointer dereferences]
             cm[1] = ff_celt_encode_band(f, rc, i, Y, NULL, band_size, b/2, f->blocks,
                                         effective_lowband != -1 ? norm2 + (effective_lowband << f->size) : NULL, f->size,
                                         norm2 + band_offset, 0, 1.0f, lowband_scratch, cm[1]);

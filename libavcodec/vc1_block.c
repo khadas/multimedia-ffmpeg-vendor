@@ -2947,6 +2947,7 @@ void ff_vc1_decode_blocks(VC1Context *v)
         switch (v->s.pict_type) {
         case AV_PICTURE_TYPE_I:
             if (v->profile == PROFILE_ADVANCED)
+                //coverity[Integer handling issues]
                 vc1_decode_i_blocks_adv(v);
             else
                 vc1_decode_i_blocks(v);

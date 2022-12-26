@@ -342,7 +342,7 @@ static void rv40_loop_filter(RV34DecContext *r, int row)
     uint8_t *Y, *C;
     int alpha, beta, betaY, betaC;
     int q;
-    int mbtype[4];   ///< current macroblock and its neighbours types
+    int mbtype[4] = {0};   ///< current macroblock and its neighbours types
     /**
      * flags indicating that macroblock can be filtered with strong filter
      * it is set only for intra coded MB and MB with DCs coded separately

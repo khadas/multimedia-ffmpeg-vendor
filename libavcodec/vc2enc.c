@@ -666,7 +666,7 @@ static int rate_control(AVCodecContext *avctx, void *arg)
     const int bottom = slice_dat->bits_floor;
     int quant_buf[2] = {-1, -1};
     int quant = slice_dat->quant_idx, step = 1;
-    int bits_last, bits = count_hq_slice(slice_dat, quant);
+    int bits_last = 0, bits = count_hq_slice(slice_dat, quant);
     while ((bits > top) || (bits < bottom)) {
         const int signed_step = bits > top ? +step : -step;
         quant  = av_clip(quant + signed_step, 0, s->q_ceil-1);

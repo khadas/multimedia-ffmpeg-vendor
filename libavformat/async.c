@@ -194,6 +194,7 @@ static void *async_buffer_task(void *arg)
         }
 
         if (c->seek_request) {
+            //coverity[Program hangs]
             seek_ret = ffurl_seek(c->inner, c->seek_pos, c->seek_whence);
             if (seek_ret >= 0) {
                 c->io_eof_reached = 0;
@@ -243,6 +244,7 @@ static int async_open(URLContext *h, const char *arg, int flags, AVDictionary **
     int              ret;
     AVIOInterruptCB  interrupt_callback = {.callback = async_check_interrupt, .opaque = h};
 
+    //coverity[Error handling issues]
     av_strstart(arg, "async:", &arg);
 
     ret = ring_init(&c->ring, BUFFER_CAPACITY, READ_BACK_CAPACITY);

@@ -247,6 +247,7 @@ static void get_exponent_dynamic(NellyMoserEncodeContext *s, float *cand, int *i
     uint8_t(*path)[OPT_SIZE] = s->path;
 
     for (i = 0; i < NELLY_BANDS * OPT_SIZE; i++) {
+        //coverity[Memory - corruptions]
         opt[0][i] = INFINITY;
     }
 

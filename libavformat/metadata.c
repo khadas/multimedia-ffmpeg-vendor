@@ -62,9 +62,12 @@ void ff_metadata_conv_ctx(AVFormatContext *ctx, const AVMetadataConv *d_conv,
     int i;
     ff_metadata_conv(&ctx->metadata, d_conv, s_conv);
     for (i=0; i<ctx->nb_streams ; i++)
+        //coverity[Memory-corruptions]
         ff_metadata_conv(&ctx->streams [i]->metadata, d_conv, s_conv);
     for (i=0; i<ctx->nb_chapters; i++)
+        //coverity[Memory-corruptions]
         ff_metadata_conv(&ctx->chapters[i]->metadata, d_conv, s_conv);
     for (i=0; i<ctx->nb_programs; i++)
+        //coverity[Memory-corruptions]
         ff_metadata_conv(&ctx->programs[i]->metadata, d_conv, s_conv);
 }

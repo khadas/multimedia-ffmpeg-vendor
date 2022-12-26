@@ -59,6 +59,7 @@ static int dtshd_read_header(AVFormatContext *s)
     AVStream *st;
     int ret;
     char *value;
+    data_start = 0;
 
     st = avformat_new_stream(s, NULL);
     if (!st)

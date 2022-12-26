@@ -106,6 +106,7 @@ static void rm_read_metadata(AVFormatContext *s, AVIOContext *pb, int wide)
     for (i=0; i<FF_ARRAY_ELEMS(ff_rm_metadata); i++) {
         int len = wide ? avio_rb16(pb) : avio_r8(pb);
         get_strl(pb, buf, sizeof(buf), len);
+        //coverity[Memory - corruptions]
         av_dict_set(&s->metadata, ff_rm_metadata[i], buf, 0);
     }
 }
@@ -365,6 +366,7 @@ int ff_rm_read_mdpr_codecdata(AVFormatContext *s, AVIOContext *pb,
             get_str8(pb, name, sizeof(name));
             switch(avio_rb32(pb)) {
             case 2: get_strl(pb, val, sizeof(val), avio_rb16(pb));
+                //coverity[Memory - corruptions]
                 av_dict_set(&s->metadata, name, val, 0);
                 break;
             default: avio_skip(pb, avio_rb16(pb));

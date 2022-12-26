@@ -68,6 +68,7 @@ static void tgq_decode_block(TgqContext *s, int16_t block[64], GetBitContext *gb
         case 4:
             block[perm[i++]] = 0;
         case 0:
+            //coverity[Memory - illegal accesses]
             block[perm[i++]] = 0;
             skip_bits(gb, 3);
             break;

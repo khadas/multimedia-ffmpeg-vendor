@@ -150,6 +150,7 @@ static void decode_mode(AVCodecContext *avctx)
 
     if (s->s.h.keyframe || s->s.h.intraonly) {
         b->intra = 1;
+        //coverity[Memory - illegal accesses]
     } else if (s->s.h.segmentation.enabled && s->s.h.segmentation.feat[b->seg_id].ref_enabled) {
         b->intra = !s->s.h.segmentation.feat[b->seg_id].ref_val;
     } else {

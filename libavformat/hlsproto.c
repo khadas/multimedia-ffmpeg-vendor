@@ -313,6 +313,7 @@ retry:
     end_time = av_gettime_relative();
     if (end_time != start_time)
     {
+        //coverity[Integer handling issues]
         *estbw = ((uint64_t)(8 * playlist_size * 1000) /((end_time - start_time)/1000));
         av_log(NULL, AV_LOG_WARNING, "start_time %lld end %lld playlist_size %d *estbw %lld\n",start_time,end_time,playlist_size,*estbw);
     }
@@ -575,6 +576,7 @@ reread:
                 av_strlcpy(s->playlisturl, s->variants[s->index_variants]->url,
                         sizeof(s->playlisturl));
             }
+            //coverity[Integer handling issues]
         } else if (bandwidth > 13*s->variants[s->index_variants]->bandwidth/10) {
             for (i = 0; i < s->n_variants; i++) {
                 av_log(NULL, AV_LOG_ERROR, "bandwidth=%lld s->variants[i]->bandwidth=%d\n",
@@ -659,6 +661,7 @@ retry:
     char tmpchar[2] = {0};
     memset(tmpchar, 0, sizeof(tmpchar));
     sprintf(tmpchar, "%d", s->reconnect);
+    //coverity[Memory-corruptions]
     av_dict_set(&opts, "reconnect", tmpchar, 0);
     ret = ffurl_open_whitelist(&s->seg_hd, url, AVIO_FLAG_READ,
                                &h->interrupt_callback, &opts,
@@ -670,6 +673,7 @@ retry:
         }
         av_log(h, AV_LOG_WARNING, "Unable to open %s\n", url);
         s->cur_seq_no++;
+        //coverity[Resource leaks]
         goto retry;
     }
     goto start;

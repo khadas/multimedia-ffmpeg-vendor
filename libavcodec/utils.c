@@ -993,6 +993,7 @@ static int reget_buffer_internal(AVCodecContext *avctx, AVFrame *frame)
         return ret;
     }
 
+    //coverity[Error handling issues]
     av_frame_copy(frame, tmp);
     av_frame_free(&tmp);
 
@@ -1345,6 +1346,7 @@ int attribute_align_arg avcodec_open2(AVCodecContext *avctx, const AVCodec *code
         && (  av_image_check_size2(avctx->coded_width, avctx->coded_height, avctx->max_pixels, AV_PIX_FMT_NONE, 0, avctx) < 0
            || av_image_check_size2(avctx->width,       avctx->height,       avctx->max_pixels, AV_PIX_FMT_NONE, 0, avctx) < 0)) {
         av_log(avctx, AV_LOG_WARNING, "Ignoring invalid width/height values\n");
+        //coverity[Error handling issues]
         ff_set_dimensions(avctx, 0, 0);
     }
 
@@ -1609,6 +1611,7 @@ FF_ENABLE_DEPRECATION_WARNINGS
     avctx->pts_correction_last_pts =
     avctx->pts_correction_last_dts = INT64_MIN;
 
+    //coverity[Null pointer dereferences]
     if (   !CONFIG_GRAY && avctx->flags & AV_CODEC_FLAG_GRAY
         && avctx->codec_descriptor->type == AVMEDIA_TYPE_VIDEO)
         av_log(avctx, AV_LOG_WARNING,
@@ -1899,6 +1902,7 @@ int attribute_align_arg avcodec_encode_audio2(AVCodecContext *avctx,
 
     av_assert0(avctx->codec->encode2);
 
+    //coverity[Memory-corruptions]
     ret = avctx->codec->encode2(avctx, avpkt, frame, got_packet_ptr);
     if (!ret) {
         if (*got_packet_ptr) {
@@ -2005,6 +2009,7 @@ int attribute_align_arg avcodec_encode_video2(AVCodecContext *avctx,
 
     av_assert0(avctx->codec->encode2);
 
+    //coverity[Null pointer dereferences]
     ret = avctx->codec->encode2(avctx, avpkt, frame, got_packet_ptr);
     av_assert0(ret <= 0);
 

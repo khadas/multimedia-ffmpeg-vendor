@@ -39,6 +39,7 @@ static int64_t bytestream2_get_levarint(GetByteContext *gb)
 
     do {
         tmp = bytestream2_get_byte(gb);
+        //coverity[Integer handling issues]
         val |= (tmp & 127) << shift;
         shift += 7;
     } while (tmp & 128);

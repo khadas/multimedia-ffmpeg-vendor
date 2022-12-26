@@ -653,6 +653,7 @@ static int64_t find_duration(NUTContext *nut, int64_t filesize)
     AVFormatContext *s = nut->avf;
     int64_t duration = 0;
 
+    //coverity[Integer handling issues]
     ff_find_last_ts(s, -1, &duration, NULL, nut_read_timestamp);
 
     if(duration > 0)
@@ -1248,6 +1249,7 @@ static int read_seek(AVFormatContext *s, int stream_index,
         av_log(s, AV_LOG_DEBUG, "%"PRIu64"-%"PRIu64" %"PRId64"-%"PRId64"\n",
                next_node[0]->pos, next_node[1]->pos, next_node[0]->ts,
                next_node[1]->ts);
+        //coverity[Integer handling issues]
         pos = ff_gen_search(s, -1, dummy.ts, next_node[0]->pos,
                             next_node[1]->pos, next_node[1]->pos,
                             next_node[0]->ts, next_node[1]->ts,

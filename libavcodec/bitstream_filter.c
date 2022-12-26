@@ -139,6 +139,7 @@ int av_bitstream_filter_filter(AVBitStreamFilterContext *bsfc,
     *poutbuf      = NULL;
     *poutbuf_size = 0;
 
+    //coverity[Memory - corruptions]
     ret = av_bsf_receive_packet(priv->ctx, &pkt);
     if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
         return 0;

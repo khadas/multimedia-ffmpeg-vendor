@@ -59,6 +59,7 @@ static int lrc_write_header(AVFormatContext *s)
          * in addition to encoder name. We will store LIBAVFORMAT_VERSION
          * to it.
          */
+         //coverity[Memory-corruptions]
         av_dict_set(&s->metadata, "ve", AV_STRINGIFY(LIBAVFORMAT_VERSION), 0);
     } else {
         av_dict_set(&s->metadata, "ve", NULL, 0);

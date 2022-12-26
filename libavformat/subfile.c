@@ -76,6 +76,7 @@ static int subfile_open(URLContext *h, const char *filename, int flags,
         av_log(h, AV_LOG_ERROR, "end before start\n");
         return AVERROR(EINVAL);
     }
+    //coverity[Error handling issuesError]
     av_strstart(filename, "subfile:", &filename);
     ret = ffurl_open_whitelist(&c->h, filename, flags, &h->interrupt_callback,
                                options, h->protocol_whitelist, h->protocol_blacklist, h);

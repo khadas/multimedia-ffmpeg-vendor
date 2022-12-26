@@ -618,6 +618,7 @@ static void decode_vectors(COOKContext *q, COOKSubpacket *p, int *category,
             memset(subband_coef_index, 0, sizeof(subband_coef_index));
             memset(subband_coef_sign,  0, sizeof(subband_coef_sign));
         }
+        //coverity[Memory - corruptions]
         q->scalar_dequant(q, index, quant_index_table[band],
                           subband_coef_index, subband_coef_sign,
                           &mlt_buffer[band * SUBBAND_SIZE]);

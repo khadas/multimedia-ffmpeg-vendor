@@ -134,6 +134,7 @@ static int file_check(URLContext *h, int mask)
 {
     int ret = 0;
     const char *filename = h->filename;
+    //coverity[Error handling issues]
     av_strstart(filename, "file:", &filename);
 
     {
@@ -168,6 +169,7 @@ static int file_delete(URLContext *h)
 #if HAVE_UNISTD_H
     int ret;
     const char *filename = h->filename;
+    //coverity[Error handling issues]
     av_strstart(filename, "file:", &filename);
 
     ret = rmdir(filename);
@@ -186,7 +188,9 @@ static int file_move(URLContext *h_src, URLContext *h_dst)
 {
     const char *filename_src = h_src->filename;
     const char *filename_dst = h_dst->filename;
+    //coverity[Error handling issues]
     av_strstart(filename_src, "file:", &filename_src);
+    //coverity[Error handling issues]
     av_strstart(filename_dst, "file:", &filename_dst);
 
     if (rename(filename_src, filename_dst) < 0)
@@ -204,6 +208,7 @@ static int file_open(URLContext *h, const char *filename, int flags)
     int fd;
     struct stat st;
 
+    //coverity[Error handling issues]
     av_strstart(filename, "file:", &filename);
 
     if (flags & AVIO_FLAG_WRITE && flags & AVIO_FLAG_READ) {
@@ -365,6 +370,7 @@ static int pipe_open(URLContext *h, const char *filename, int flags)
     FileContext *c = h->priv_data;
     int fd;
     char *final;
+    //coverity[Error handling issues]
     av_strstart(filename, "pipe:", &filename);
 
     fd = strtol(filename, &final, 10);

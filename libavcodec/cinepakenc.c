@@ -338,6 +338,7 @@ static int64_t calculate_mode_score(CinepakEncContext *s, int h, strip_info *inf
 // while calculating we assume all blocks are ENC_V1
         for(x = 0; x < mb_count; x++) {
             mb = &s->mb[x];
+            //coverity[Integer handling issues]
             ret += FF_LAMBDA_SCALE * mb->v1_error;
 #ifdef CINEPAK_REPORT_SERR
             *serr += mb->v1_error;

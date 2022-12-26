@@ -376,8 +376,8 @@ FF_ENABLE_DEPRECATION_WARNINGS
 
         s->m.mb_y = y;
         for (x = 0; x < block_width; x++) {
-            uint8_t reorder_buffer[2][6][7 * 32];
-            int count[2][6];
+            uint8_t reorder_buffer[2][6][7 * 32] = {0};
+            int count[2][6] = {0};
             int offset       = y * 16 * stride + x * 16;
             uint8_t *decoded = decoded_plane + offset;
             uint8_t *ref     = ref_plane + offset;

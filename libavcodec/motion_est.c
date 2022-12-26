@@ -847,6 +847,7 @@ static int interlaced_search(MpegEncContext *s, int ref_index,
             }
         }
         {
+        //coverity[Memory - illegal accesses]
             int16_t (*mv_table)[2]= mv_tables[block][best_field];
 
             if(mv_table[xy][0] != mx) same=0; //FIXME check if these checks work and are any good at all

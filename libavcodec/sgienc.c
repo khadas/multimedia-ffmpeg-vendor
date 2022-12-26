@@ -133,6 +133,7 @@ FF_ENABLE_DEPRECATION_WARNINGS
         dimension = SGI_MULTI_CHAN;
         depth     = SGI_RGBA;
         break;
+    //coverity[Control flow issues]
     case AV_PIX_FMT_GRAY16LE:
         put_be = !HAVE_BIGENDIAN;
     case AV_PIX_FMT_GRAY16BE:
@@ -141,6 +142,7 @@ FF_ENABLE_DEPRECATION_WARNINGS
         dimension = SGI_SINGLE_CHAN;
         depth     = SGI_GRAYSCALE;
         break;
+    //coverity[Control flow issues]
     case AV_PIX_FMT_RGB48LE:
         put_be = !HAVE_BIGENDIAN;
     case AV_PIX_FMT_RGB48BE:
@@ -149,6 +151,7 @@ FF_ENABLE_DEPRECATION_WARNINGS
         dimension = SGI_MULTI_CHAN;
         depth     = SGI_RGB;
         break;
+    //coverity[Control flow issues]
     case AV_PIX_FMT_RGBA64LE:
         put_be = !HAVE_BIGENDIAN;
     case AV_PIX_FMT_RGBA64BE:

@@ -255,6 +255,7 @@ static void mp_decode_frame_helper(MotionPixelsContext *mp, GetBitContext *gb)
 {
     YuvPixel p;
     int y, y0;
+    p.y = p.v = p.u = 0;
 
     av_assert1(mp->changes_map[0]);
 

@@ -174,7 +174,7 @@ static int dxv_decompress_dxt5(AVCodecContext *avctx)
     DXVContext *ctx = avctx->priv_data;
     GetByteContext *gbc = &ctx->gbc;
     uint32_t value, op;
-    int idx, prev, state = 0;
+    int idx = 0, prev, state = 0;
     int pos = 4;
     int run = 0;
     int probe, check;

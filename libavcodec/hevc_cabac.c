@@ -1413,6 +1413,7 @@ void ff_hevc_hls_residual_coding(HEVCContext *s, int x0, int y0,
                     int last_coeff_abs_level_remaining = coeff_abs_level_remaining_decode(s, c_rice_param);
 
                     trans_coeff_level = 1 + last_coeff_abs_level_remaining;
+                    //coverity[Integer handling issues]
                     if (trans_coeff_level > (3 << c_rice_param))
                         c_rice_param = s->ps.sps->persistent_rice_adaptation_enabled_flag ? c_rice_param + 1 : FFMIN(c_rice_param + 1, 4);
                     if (s->ps.sps->persistent_rice_adaptation_enabled_flag && !rice_init) {

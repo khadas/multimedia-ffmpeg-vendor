@@ -265,7 +265,9 @@ static int decode_unit(SCPRContext *s, PixelModel *pixel, unsigned step, unsigne
     if ((ret = s->decode(gb, rc, cumfr, cnt_c, totfr)) < 0)
         return ret;
 
+    //coverity[Memory - corruptions]
     pixel->freq[c] = cnt_c + step;
+    //coverity[Memory - corruptions]
     pixel->lookup[x] = cnt_x + step;
     totfr += step;
     if (totfr > BOT) {

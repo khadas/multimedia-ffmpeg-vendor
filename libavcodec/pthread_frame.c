@@ -624,6 +624,7 @@ void ff_thread_finish_setup(AVCodecContext *avctx) {
 
     pthread_cond_broadcast(&p->progress_cond);
     pthread_mutex_unlock(&p->progress_mutex);
+    //coverity[Program hangs]
 }
 
 /// Waits for all threads to finish.
@@ -678,6 +679,7 @@ void ff_frame_thread_free(AVCodecContext *avctx, int thread_count)
         if (codec->close && p->avctx)
             codec->close(p->avctx);
 
+        //coverity[Null pointer dereferences]
         release_delayed_buffers(p);
         av_frame_free(&p->frame);
     }

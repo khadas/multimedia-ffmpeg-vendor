@@ -460,6 +460,7 @@ static int decode_residual(const H264Context *h, H264SliceContext *sl,
             total_coeff= coeff_token>>2;
         }else{
             total_coeff= pred_non_zero_count(h, sl, n);
+            //coverity[Memory - illegal accesses]
             coeff_token= get_vlc2(gb, coeff_token_vlc[ coeff_token_table_index[total_coeff] ].table, COEFF_TOKEN_VLC_BITS, 2);
             total_coeff= coeff_token>>2;
         }
@@ -840,7 +841,7 @@ decode_intra_mb:
             sl->chroma_pred_mode = DC_128_PRED8x8;
         }
     }else if(partition_count==4){
-        int i, j, sub_partition_count[4], list, ref[2][4];
+        int i, j, sub_partition_count[4], list, ref[2][4] = {0};
 
         if (sl->slice_type_nos == AV_PICTURE_TYPE_B) {
             for(i=0; i<4; i++){

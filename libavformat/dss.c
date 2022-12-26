@@ -87,6 +87,7 @@ static int dss_read_metadata_date(AVFormatContext *s, unsigned int offset,
      * and hope it will never be used in the next century. */
     snprintf(datetime, sizeof(datetime), "%.4d-%.2d-%.2dT%.2d:%.2d:%.2d",
              y + 2000, month, d, h, minute, sec);
+    //coverity[Memory-corruptions]
     return av_dict_set(&s->metadata, key, datetime, 0);
 }
 
@@ -109,9 +110,11 @@ static int dss_read_metadata_string(AVFormatContext *s, unsigned int offset,
         goto exit;
     }
 
+    //coverity[Memory-corruptions]
     ret = av_dict_set(&s->metadata, key, value, 0);
 
 exit:
+    //coverity[Memory-corruptions]
     av_free(value);
     return ret;
 }

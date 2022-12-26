@@ -401,12 +401,15 @@ FF_ENABLE_DEPRECATION_WARNINGS
 
     /* set muxer identification string */
     if (!(s->flags & AVFMT_FLAG_BITEXACT)) {
+        //coverity[Memory - corruptions]
         av_dict_set(&s->metadata, "encoder", LIBAVFORMAT_IDENT, 0);
     } else {
+        //coverity[Memory - corruptions]
         av_dict_set(&s->metadata, "encoder", NULL, 0);
     }
 
     for (e = NULL; e = av_dict_get(s->metadata, "encoder-", e, AV_DICT_IGNORE_SUFFIX); ) {
+        //coverity[Memory - corruptions]
         av_dict_set(&s->metadata, e->key, NULL, 0);
     }
 
@@ -473,6 +476,7 @@ static int write_header_internal(AVFormatContext *s)
     if (!(s->oformat->flags & AVFMT_NOFILE) && s->pb)
         avio_write_marker(s->pb, AV_NOPTS_VALUE, AVIO_DATA_MARKER_HEADER);
     if (s->oformat->write_header) {
+        //coverity[Null pointer dereferences]
         int ret = s->oformat->write_header(s);
         if (ret >= 0 && s->pb && s->pb->error < 0)
             ret = s->pb->error;
@@ -914,6 +918,7 @@ FF_ENABLE_DEPRECATION_WARNINGS
         if ((ret = av_bsf_receive_packet(ctx, pkt)) < 0) {
             if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
                 return 0;
+            //coverity[Memory - illegal accesses]
             av_log(ctx, AV_LOG_ERROR,
                     "Failed to send packet to filter %s for stream %d\n",
                     ctx->filter->name, pkt->stream_index);
@@ -1341,6 +1346,7 @@ fail:
         if (ret >= 0) {
         ret = s->oformat->write_trailer(s);
         } else {
+        //coverity[Null pointer dereferences]
             s->oformat->write_trailer(s);
         }
     }

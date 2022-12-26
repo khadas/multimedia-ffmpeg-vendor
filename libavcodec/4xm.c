@@ -612,7 +612,7 @@ static const uint8_t *read_huffman_tables(FourXContext *f,
                                           int buf_size)
 {
     int frequency[512] = { 0 };
-    uint8_t flag[512];
+    uint8_t flag[512] = {0};
     int up[512];
     uint8_t len_tab[257];
     int bits_tab[257];

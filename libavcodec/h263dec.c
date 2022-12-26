@@ -497,6 +497,7 @@ retry:
         ret = ff_flv_decode_picture_header(s);
         if (ret == AVERROR_INVALIDDATA) {
             s->h263_flv = 0;
+            //coverity[Error handling issues]
             init_get_bits8(&s->gb, buf, buf_size);
             ret = ff_h263_decode_picture_header(s);
         }

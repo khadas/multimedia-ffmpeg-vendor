@@ -784,6 +784,7 @@ static void generate_noise(G723_1_Context *p)
         } else {
            for (j = 0; j < SUBFRAME_LEN * 2; j++) {
                t      = vector_ptr[j] >> shift;
+               //coverity[Integer handling issues]
                sum   += t * t;
                tmp[j] = t;
            }

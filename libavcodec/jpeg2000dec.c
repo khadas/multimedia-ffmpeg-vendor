@@ -136,6 +136,7 @@ static int get_bits(Jpeg2000DecoderContext *s, int n)
             s->bit_index = 7 + (bytestream2_get_byte(&s->g) != 0xFFu);
         }
         s->bit_index--;
+        //coverity[Integer handling issues]
         res |= (bytestream2_peek_byte(&s->g) >> s->bit_index) & 1;
     }
     return res;

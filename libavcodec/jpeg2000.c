@@ -541,6 +541,7 @@ int ff_jpeg2000_init_component(Jpeg2000Component *comp,
             return AVERROR(ENOMEM);
 
         for (bandno = 0; bandno < reslevel->nbands; bandno++, gbandno++) {
+            //coverity[Integer handling issues]
             ret = init_band(avctx, reslevel,
                             comp, codsty, qntsty,
                             bandno, gbandno, reslevelno,

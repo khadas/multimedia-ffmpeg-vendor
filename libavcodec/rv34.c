@@ -395,6 +395,7 @@ static int rv34_decode_inter_mb_header(RV34DecContext *r, int8_t *intra_types)
     r->block_type = r->decode_mb_info(r);
     if(r->block_type == -1)
         return -1;
+    //coverity[Memory - illegal accesses]
     s->current_picture_ptr->mb_type[mb_pos] = rv34_mb_type_to_lavc[r->block_type];
     r->mb_type[mb_pos] = r->block_type;
     if(r->block_type == RV34_MB_SKIP){
@@ -404,6 +405,7 @@ static int rv34_decode_inter_mb_header(RV34DecContext *r, int8_t *intra_types)
             r->mb_type[mb_pos] = RV34_MB_B_DIRECT;
     }
     r->is16 = !!IS_INTRA16x16(s->current_picture_ptr->mb_type[mb_pos]);
+    //coverity[Memory - corruptions]
     if (rv34_decode_mv(r, r->block_type) < 0)
         return -1;
     if(r->block_type == RV34_MB_SKIP){

@@ -127,6 +127,7 @@ static av_cold int smvjpeg_decode_init(AVCodecContext *avctx)
 
     s->avctx = avcodec_alloc_context3(codec);
 
+    //coverity[Memory-corruptions]
     av_dict_set(&thread_opt, "threads", "1", 0);
     s->avctx->refcounted_frames = 1;
     s->avctx->flags = avctx->flags;

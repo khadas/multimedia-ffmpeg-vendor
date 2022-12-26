@@ -65,7 +65,9 @@ static int efi_read(AVFormatContext *avctx, uint64_t start_pos)
         av_dict_set(&avctx->metadata, name, buf, 0); \
     }
 
+    //coverity[Memory - corruptions]
     GET_EFI_META("filename", 12)
+    //coverity[Memory - corruptions]
     GET_EFI_META("title",    36)
 
     s->fsize = start_pos;

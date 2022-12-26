@@ -73,6 +73,7 @@ static void parse_avs3_nal_units(AVCodecParserContext *s, const uint8_t *buf,
             GetBitContext gb;
             int profile, ratecode;
 
+            //coverity[Error handling issues]
             init_get_bits8(&gb, buf + 4, buf_size - 4);
 
             s->key_frame = 1;

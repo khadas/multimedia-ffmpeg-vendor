@@ -65,6 +65,7 @@ static int unix_open(URLContext *h, const char *filename, int flags)
     UnixContext *s = h->priv_data;
     int fd, ret;
 
+    //coverity[Error handling issues]
     av_strstart(filename, "unix:", &filename);
     s->addr.sun_family = AF_UNIX;
     av_strlcpy(s->addr.sun_path, filename, sizeof(s->addr.sun_path));

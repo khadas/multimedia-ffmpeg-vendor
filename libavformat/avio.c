@@ -197,8 +197,10 @@ int ffurl_connect(URLContext *uc, AVDictionary **options)
     } else if (!uc->protocol_whitelist)
         av_log(uc, AV_LOG_DEBUG, "No default whitelist set\n"); // This should be an error once all declare a default whitelist
 
+    //coverity[Memory-corruptions]
     if ((err = av_dict_set(options, "protocol_whitelist", uc->protocol_whitelist, 0)) < 0)
         return err;
+    //coverity[Memory-corruptions]
     if ((err = av_dict_set(options, "protocol_blacklist", uc->protocol_blacklist, 0)) < 0)
         return err;
 
@@ -335,9 +337,11 @@ int ffurl_open_whitelist(URLContext **puc, const char *filename, int flags,
                !(e=av_dict_get(*options, "protocol_blacklist", NULL, 0)) ||
                !strcmp(blacklist, e->value));
 
+    //coverity[Memory-corruptions]
     if ((ret = av_dict_set(options, "protocol_whitelist", whitelist, 0)) < 0)
         goto fail;
 
+    //coverity[Memory-corruptions]
     if ((ret = av_dict_set(options, "protocol_blacklist", blacklist, 0)) < 0)
         goto fail;
 

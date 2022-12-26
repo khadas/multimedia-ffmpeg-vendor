@@ -48,9 +48,13 @@ int ff_sauce_read(AVFormatContext *avctx, uint64_t *fsize, int *got_width, int g
         av_dict_set(&avctx->metadata, name, buf, 0); \
     }
 
+    //coverity[Memory - corruptions]
     GET_SAUCE_META("title",     35)
+    //coverity[Memory - corruptions]
     GET_SAUCE_META("artist",    20)
+    //coverity[Memory - corruptions]
     GET_SAUCE_META("publisher", 20)
+    //coverity[Memory - corruptions]
     GET_SAUCE_META("date",      8)
     avio_skip(pb, 4);
     datatype    = avio_r8(pb);

@@ -135,10 +135,13 @@ static int rpl_read_header(AVFormatContext *s)
     // for the text in a few cases; samples needed.)
     error |= read_line(pb, line, sizeof(line));      // ARMovie
     error |= read_line(pb, line, sizeof(line));      // movie name
+    //coverity[Memory - corruptions]
     av_dict_set(&s->metadata, "title"    , line, 0);
     error |= read_line(pb, line, sizeof(line));      // date/copyright
+    //coverity[Memory - corruptions]
     av_dict_set(&s->metadata, "copyright", line, 0);
     error |= read_line(pb, line, sizeof(line));      // author and other
+    //coverity[Memory - corruptions]
     av_dict_set(&s->metadata, "author"   , line, 0);
 
     // video headers

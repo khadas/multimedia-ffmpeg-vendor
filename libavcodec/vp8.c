@@ -1268,6 +1268,7 @@ int decode_block_coeffs_internal(VP56RangeCoder *r, int16_t block[16],
     do {
         int coeff;
 restart:
+        //coverity[Memory - illegal accesses]
         if (!vp56_rac_get_prob_branchy(&c, token_prob[0]))   // DCT_EOB
             break;
 

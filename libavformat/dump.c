@@ -616,6 +616,7 @@ void av_dump_format(AVFormatContext *ic, int index,
             for (k = 0; k < ic->programs[j]->nb_stream_indexes; k++) {
                 dump_stream_format(ic, ic->programs[j]->stream_index[k],
                                    index, is_output);
+                //coverity[Null pointer dereferences]
                 printed[ic->programs[j]->stream_index[k]] = 1;
             }
             total += ic->programs[j]->nb_stream_indexes;

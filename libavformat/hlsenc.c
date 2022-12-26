@@ -182,6 +182,7 @@ static int mkdir_p(const char *path) {
         }
     }
 
+    //coverity[Integer handling issues]
     if ((*(pos - 1) != '/') || (*(pos - 1) != '\\')) {
         ret = mkdir(temp, 0755);
     }
@@ -303,6 +304,7 @@ static int hls_delete_old_segments(AVFormatContext *s, HLSContext *hls) {
 
         proto = avio_find_protocol_name(s->filename);
         if (hls->method || (proto && !av_strcasecmp(proto, "http"))) {
+            //coverity[Memory-corruptions]
             av_dict_set(&options, "method", "DELETE", 0);
             if ((ret = hls->avf->io_open(hls->avf, &out, path, AVIO_FLAG_WRITE, &options)) < 0)
                 goto fail;
@@ -320,6 +322,7 @@ static int hls_delete_old_segments(AVFormatContext *s, HLSContext *hls) {
                 goto fail;
             }
 
+            //coverity[Null pointer dereferences]
             av_strlcpy(sub_path, dirname, sub_path_size);
             av_strlcat(sub_path, segment->sub_filename, sub_path_size);
 
@@ -447,6 +450,7 @@ static int hls_mux_init(AVFormatContext *s)
         else
             loc = oc;
 
+        //coverity[Null pointer dereferences]
         if (!(st = avformat_new_stream(loc, NULL)))
             return AVERROR(ENOMEM);
         avcodec_parameters_copy(st->codecpar, s->streams[i]->codecpar);
@@ -783,6 +787,7 @@ static void set_http_options(AVFormatContext *s, AVDictionary **options, HLSCont
     int http_base_proto = proto ? (!av_strcasecmp(proto, "http") || !av_strcasecmp(proto, "https")) : 0;
 
     if (c->method) {
+        //coverity[Memory-corruptions]
         av_dict_set(options, "method", c->method, 0);
     } else if (http_base_proto) {
         av_log(c, AV_LOG_WARNING, "No HTTP method set, hls muxer defaulting to method PUT.\n");
@@ -894,6 +899,7 @@ static int hls_window(AVFormatContext *s, int last)
             tt = (int64_t)prog_date_time;
             milli = av_clip(lrint(1000*(prog_date_time - tt)), 0, 999);
             tm = localtime_r(&tt, &tmpbuf);
+            //coverity[Error handling issues]
             strftime(buf0, sizeof(buf0), "%Y-%m-%dT%H:%M:%S", tm);
             if (!strftime(buf1, sizeof(buf1), "%z", tm) || buf1[1]<'0' ||buf1[1]>'2') {
                 int tz_min, dst = tm->tm_isdst;
@@ -1034,6 +1040,7 @@ static int hls_start(AVFormatContext *s)
     if (c->key_info_file) {
         if ((err = hls_encryption_start(s)) < 0)
             goto fail;
+        //coverity[Memory-corruptions]
         if ((err = av_dict_set(&options, "encryption_key", c->key_string, 0))
                 < 0)
             goto fail;
@@ -1380,6 +1387,7 @@ static int hls_write_packet(AVFormatContext *s, AVPacket *pkt)
 
         if (!byterange_mode) {
             ff_format_io_close(s, &oc->pb);
+            //coverity[Null pointer dereferences]
             if (hls->vtt_avf) {
                 ff_format_io_close(s, &hls->vtt_avf->pb);
             }

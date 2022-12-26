@@ -177,6 +177,7 @@ static void model_update(Model *m, int val)
             m->tot_weight +=  m->weights[i];
         }
     }
+    //coverity[Integer handling issues]
     scale = 0x80000000u / m->tot_weight;
     for (i = 0; i < m->num_syms; i++) {
         m->freqs[i] = sum * scale >> 16;

@@ -213,6 +213,7 @@ static void spatial_decompose53i(DWTELEM *buffer, DWTELEM *temp,
                                  int width, int height, int stride)
 {
     int y;
+    //coverity[Integer handling issues]
     DWTELEM *b0 = buffer + avpriv_mirror(-2 - 1, height - 1) * stride;
     DWTELEM *b1 = buffer + avpriv_mirror(-2,     height - 1) * stride;
 
@@ -286,6 +287,7 @@ static void spatial_decompose97i(DWTELEM *buffer, DWTELEM *temp,
                                  int width, int height, int stride)
 {
     int y;
+    //coverity[Integer handling issues]
     DWTELEM *b0 = buffer + avpriv_mirror(-4 - 1, height - 1) * stride;
     DWTELEM *b1 = buffer + avpriv_mirror(-4,     height - 1) * stride;
     DWTELEM *b2 = buffer + avpriv_mirror(-4 + 1, height - 1) * stride;
@@ -383,6 +385,7 @@ static void vertical_compose53iL0(IDWTELEM *b0, IDWTELEM *b1, IDWTELEM *b2,
 static void spatial_compose53i_buffered_init(DWTCompose *cs, slice_buffer *sb,
                                              int height, int stride_line)
 {
+    //coverity[Integer handling issues]
     cs->b0 = slice_buffer_get_line(sb,
                                    avpriv_mirror(-1 - 1, height - 1) * stride_line);
     cs->b1 = slice_buffer_get_line(sb, avpriv_mirror(-1, height - 1) * stride_line);
@@ -392,6 +395,7 @@ static void spatial_compose53i_buffered_init(DWTCompose *cs, slice_buffer *sb,
 static void spatial_compose53i_init(DWTCompose *cs, IDWTELEM *buffer,
                                     int height, int stride)
 {
+    //coverity[Integer handling issues]
     cs->b0 = buffer + avpriv_mirror(-1 - 1, height - 1) * stride;
     cs->b1 = buffer + avpriv_mirror(-1,     height - 1) * stride;
     cs->y  = -1;
@@ -543,6 +547,7 @@ void ff_snow_vertical_compose97i(IDWTELEM *b0, IDWTELEM *b1, IDWTELEM *b2,
 static void spatial_compose97i_buffered_init(DWTCompose *cs, slice_buffer *sb,
                                              int height, int stride_line)
 {
+    //coverity[Integer handling issues]
     cs->b0 = slice_buffer_get_line(sb, avpriv_mirror(-3 - 1, height - 1) * stride_line);
     cs->b1 = slice_buffer_get_line(sb, avpriv_mirror(-3,     height - 1) * stride_line);
     cs->b2 = slice_buffer_get_line(sb, avpriv_mirror(-3 + 1, height - 1) * stride_line);
@@ -553,6 +558,7 @@ static void spatial_compose97i_buffered_init(DWTCompose *cs, slice_buffer *sb,
 static void spatial_compose97i_init(DWTCompose *cs, IDWTELEM *buffer, int height,
                                     int stride)
 {
+    //coverity[Integer handling issues]
     cs->b0 = buffer + avpriv_mirror(-3 - 1, height - 1) * stride;
     cs->b1 = buffer + avpriv_mirror(-3,     height - 1) * stride;
     cs->b2 = buffer + avpriv_mirror(-3 + 1, height - 1) * stride;

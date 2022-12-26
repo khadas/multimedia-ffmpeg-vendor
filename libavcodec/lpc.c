@@ -206,7 +206,7 @@ int ff_lpc_calc_coefs(LPCContext *s,
 {
     double autoc[MAX_LPC_ORDER+1];
     double ref[MAX_LPC_ORDER] = { 0 };
-    double lpc[MAX_LPC_ORDER][MAX_LPC_ORDER];
+    double lpc[MAX_LPC_ORDER][MAX_LPC_ORDER] = {0};
     int i, j, pass = 0;
     int opt_order;
 

@@ -514,6 +514,7 @@ static int http_open(URLContext *h, const char *uri, int flags,
     if (s->listen) {
         return http_listen(h, uri, flags, options);
     }
+    //coverity[Null pointer dereferences]
     ret = http_open_cnx(h, options);
     if (ret < 0)
         av_dict_free(&s->chained_options);
@@ -676,6 +677,7 @@ static int parse_icy(HTTPContext *s, const char *tag, const char *p)
     if (is_first)
         *s->icy_metadata_headers = '\0';
 
+    //coverity[Memory - illegal accesses]
     av_strlcatf(s->icy_metadata_headers, len, "%s: %s\n", tag, p);
 
     return 0;
@@ -886,6 +888,7 @@ static int get_cookies(HTTPContext *s, char **cookies, const char *path,
         if (parse_cookie(s, cookie, &s->cookie_dict))
             av_log(s, AV_LOG_WARNING, "Unable to parse '%s'\n", cookie);
 
+        //coverity[Memory - illegal accesses]
         while ((param = av_strtok(cookie, "; ", &next_param))) {
             if (cookie) {
                 // first key-value pair is the actual cookie value
@@ -982,6 +985,7 @@ static int http_read_header(URLContext *h, int *new_location)
 
         av_log(h, AV_LOG_TRACE, "header='%s'\n", line);
 
+        //coverity[Memory-corruptions]
         err = process_line(h, line, s->line_count, new_location);
         if (err < 0)
             return err;
@@ -1383,6 +1387,7 @@ static int store_icy(URLContext *h, int size)
             data[len + 1] = 0;
             if ((ret = av_opt_set(s, "icy_metadata_packet", data, 0)) < 0)
                 return ret;
+            //coverity[Memory-corruptions]
             update_metadata(s, data);
         }
         s->icy_data_read = 0;

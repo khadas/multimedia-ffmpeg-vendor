@@ -818,8 +818,11 @@ static void diag_downleft_##size##x##size##_c(uint8_t *_dst, ptrdiff_t stride, \
     } \
 }
 
+//coverity[Memory - illegal accesses]
 def_diag_downleft(8)
+//coverity[Memory - illegal accesses]
 def_diag_downleft(16)
+//coverity[Memory - illegal accesses]
 def_diag_downleft(32)
 
 static void diag_downright_4x4_c(uint8_t *_dst, ptrdiff_t stride,
@@ -1069,8 +1072,11 @@ static void hor_up_##size##x##size##_c(uint8_t *_dst, ptrdiff_t stride, \
     } \
 }
 
+//coverity[Memory - illegal accesses]
 def_hor_up(8)
+//coverity[Memory - illegal accesses]
 def_hor_up(16)
+//coverity[Memory - illegal accesses]
 def_hor_up(32)
 
 #undef DST

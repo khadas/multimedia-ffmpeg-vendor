@@ -112,6 +112,7 @@ static void comp_autocorr(int16_t *buf, int16_t *autocorr)
 
     /* Normalize */
     scale       = ff_g723_1_normalize_bits(temp, 31);
+    //coverity[Integer handling issues]
     autocorr[0] = av_clipl_int32((int64_t) (temp << scale) +
                                  (1 << 15)) >> 16;
 
@@ -232,6 +233,7 @@ static void lpc2lsp(int16_t *lpc, int16_t *prev_lsp, int16_t *lsp)
     shift = ff_g723_1_normalize_bits(max, 31);
 
     for (i = 0; i < LPC_ORDER + 2; i++)
+        //coverity[Integer handling issues]
         f[i] = av_clipl_int32((int64_t) (f[i] << shift) + (1 << 15)) >> 16;
 
     /**
@@ -241,6 +243,7 @@ static void lpc2lsp(int16_t *lpc, int16_t *prev_lsp, int16_t *lsp)
     p    = 0;
     temp = 0;
     for (i = 0; i <= LPC_ORDER / 2; i++)
+        //coverity[Integer handling issues]
         temp += f[2 * i] * cos_tab[0];
     prev_val = av_clipl_int32(temp << 1);
     count    = 0;
@@ -271,6 +274,7 @@ static void lpc2lsp(int16_t *lpc, int16_t *prev_lsp, int16_t *lsp)
             /* Evaluate */
             temp = 0;
             for (j = 0; j <= LPC_ORDER / 2; j++)
+                //coverity[Integer handling issues]
                 temp += f[LPC_ORDER - 2 * j + p] *
                         cos_tab[i * j % COS_TBL_SIZE];
             cur_val = av_clipl_int32(temp << 1);
@@ -445,6 +449,7 @@ static int estimate_pitch(int16_t *buf, int start)
 
         /* Split into mantissa and exponent to maintain precision */
         exp   = ff_g723_1_normalize_bits(ccr, 31);
+        //coverity[Integer handling issues]
         ccr   = av_clipl_int32((int64_t) (ccr << exp) + (1 << 15)) >> 16;
         exp <<= 1;
         ccr  *= ccr;
@@ -453,6 +458,7 @@ static int estimate_pitch(int16_t *buf, int start)
         exp  += temp;
 
         temp = ff_g723_1_normalize_bits(orig_eng, 31);
+        //coverity[Integer handling issues]
         eng  = av_clipl_int32((int64_t) (orig_eng << temp) + (1 << 15)) >> 16;
         exp -= temp;
 
@@ -515,6 +521,7 @@ static void comp_harmonic_coeff(int16_t *buf, int16_t pitch_lag, HFParam *hf)
 
     exp = ff_g723_1_normalize_bits(max, 31);
     for (i = 0; i < 15; i++) {
+        //coverity[Integer handling issues]
         energy[i] = av_clipl_int32((int64_t)(energy[i] << exp) +
                                    (1 << 15)) >> 16;
     }
@@ -569,6 +576,7 @@ static void harmonic_filter(HFParam *hf, const int16_t *src, int16_t *dest)
     int i;
 
     for (i = 0; i < SUBFRAME_LEN; i++) {
+        //coverity[Integer handling issues]
         int64_t temp = hf->gain * src[i - hf->index] << 1;
         dest[i] = av_clipl_int32((src[i] << 16) - temp + (1 << 15)) >> 16;
     }
@@ -578,6 +586,7 @@ static void harmonic_noise_sub(HFParam *hf, const int16_t *src, int16_t *dest)
 {
     int i;
     for (i = 0; i < SUBFRAME_LEN; i++) {
+        //coverity[Integer handling issues]
         int64_t temp = hf->gain * src[i - hf->index] << 1;
         dest[i] = av_clipl_int32(((dest[i] - src[i]) << 16) + temp +
                                  (1 << 15)) >> 16;
@@ -711,6 +720,7 @@ static void acb_search(G723_1_Context *p, int16_t *residual,
     temp = ff_g723_1_normalize_bits(max, 31);
 
     for (i = 0; i < 20 * iter; i++)
+        //coverity[Integer handling issues]
         ccr_buf[i] = av_clipl_int32((int64_t) (ccr_buf[i] << temp) +
                                     (1 << 15)) >> 16;
 
@@ -726,6 +736,7 @@ static void acb_search(G723_1_Context *p, int16_t *residual,
         for (j = 0, k = 0; j < tbl_size; j++, k += 20) {
             temp = 0;
             for (l = 0; l < 20; l++)
+                //coverity[Integer handling issues]
                 temp += ccr_buf[20 * i + l] * cb_tbl[k + l];
             temp = av_clipl_int32(temp);
 

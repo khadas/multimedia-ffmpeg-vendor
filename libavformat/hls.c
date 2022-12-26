@@ -632,6 +632,7 @@ static int open_url(AVFormatContext *s, AVIOContext **pb, const char *url,
         // update cookies on http response with setcookies.
         void *u = (s->flags & AVFMT_FLAG_CUSTOM_IO) ? NULL : s->pb;
         update_options(&c->cookies, "cookies", u);
+        //coverity[Memory-corruptions]
         av_dict_set(&opts, "cookies", c->cookies, 0);
     }
 
@@ -667,12 +668,17 @@ static int parse_playlist(HLSContext *c, const char *url,
         AVDictionary *opts = NULL;
         close_in = 1;
         /* Some HLS servers don't like being sent the range header */
+        //coverity[Memory-corruptions]
         av_dict_set(&opts, "seekable", "0", 0);
 
         // broker prior HTTP options that should be consistent across requests
+        //coverity[Memory-corruptions]
         av_dict_set(&opts, "user_agent", c->user_agent, 0);
+        //coverity[Memory-corruptions]
         av_dict_set(&opts, "cookies", c->cookies, 0);
+        //coverity[Memory-corruptions]
         av_dict_set(&opts, "headers", c->headers, 0);
+        //coverity[Memory-corruptions]
         av_dict_set(&opts, "http_proxy", c->http_proxy, 0);
 
         ret = c->ctx->io_open(c->ctx, &in, url, AVIO_FLAG_READ, &opts);
@@ -1084,10 +1090,15 @@ static int open_input(HLSContext *c, struct playlist *pls, struct segment *seg)
     int is_http = 0;
 
     // broker prior HTTP options that should be consistent across requests
+    //coverity[Memory-corruptions]
     av_dict_set(&opts, "user_agent", c->user_agent, 0);
+    //coverity[Memory-corruptions]
     av_dict_set(&opts, "cookies", c->cookies, 0);
+    //coverity[Memory-corruptions]
     av_dict_set(&opts, "headers", c->headers, 0);
+    //coverity[Memory-corruptions]
     av_dict_set(&opts, "http_proxy", c->http_proxy, 0);
+    //coverity[Memory-corruptions]
     av_dict_set(&opts, "seekable", "0", 0);
 
     if (seg->size >= 0) {
@@ -1311,6 +1322,7 @@ reload:
         if (ret)
             return ret;
 
+        //coverity[Memory-corruptions]
         ret = open_input(c, v, seg);
         if (ret < 0) {
             if (ff_check_interrupt(c->interrupt_callback))
@@ -1392,8 +1404,10 @@ static void add_metadata_from_renditions(AVFormatContext *s, struct playlist *pl
                 continue;
 
             if (rend->language[0])
+                //coverity[Memory-corruptions]
                 av_dict_set(&st->metadata, "language", rend->language, 0);
             if (rend->name[0])
+                //coverity[Memory-corruptions]
                 av_dict_set(&st->metadata, "comment", rend->name, 0);
 
             st->disposition |= rend->disposition;
@@ -1525,6 +1539,7 @@ static void add_stream_to_programs(AVFormatContext *s, struct playlist *pls, AVS
     }
 
     if (bandwidth >= 0)
+        //coverity[Memory-corruptions]
         av_dict_set_int(&stream->metadata, "variant_bitrate", bandwidth, 0);
 }
 
@@ -1642,6 +1657,7 @@ static int hls_read_header(AVFormatContext *s)
         goto fail;
 
     /* Some HLS servers don't like being sent the range header */
+    //coverity[Memory-corruptions]
     av_dict_set(&c->avio_opts, "seekable", "0", 0);
 
     if (c->n_variants == 0) {
@@ -1654,6 +1670,7 @@ static int hls_read_header(AVFormatContext *s)
     if (c->n_playlists > 1 || c->playlists[0]->n_segments == 0) {
         for (i = 0; i < c->n_playlists; i++) {
             struct playlist *pls = c->playlists[i];
+            //coverity[Memory-corruptions]
             if ((ret = parse_playlist(c, pls->url, pls, NULL)) < 0)
                 goto fail;
         }
@@ -1832,6 +1849,7 @@ static int recheck_discard_flags(AVFormatContext *s, int first)
         if (pls->cur_needed && !pls->needed) {
             pls->needed = 1;
             changed = 1;
+            //coverity[Memory-corruptions]
             pls->cur_seq_no = select_cur_seq_no(c, pls);
             pls->pb.eof_reached = 0;
             if (c->cur_timestamp != AV_NOPTS_VALUE) {

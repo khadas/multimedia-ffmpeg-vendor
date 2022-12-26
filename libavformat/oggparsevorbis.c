@@ -64,6 +64,7 @@ static int ogm_chapter(AVFormatContext *as, uint8_t *key, uint8_t *val)
         if (!chapter)
             return 0;
 
+        //coverity[Memory - corruptions]
         av_dict_set(&chapter->metadata, "title", val, AV_DICT_DONT_STRDUP_VAL);
     } else
         return 0;
@@ -175,11 +176,14 @@ int ff_vorbis_comment(AVFormatContext *as, AVDictionary **m,
             } else if (!ogm_chapter(as, tt, ct)) {
                 updates++;
                 if (av_dict_get(*m, tt, NULL, 0)) {
+                    //coverity[Memory - corruptions]
                     av_dict_set(m, tt, ";", AV_DICT_APPEND);
                 }
+                //coverity[Memory - illegal accesses]
                 av_dict_set(m, tt, ct,
                             AV_DICT_DONT_STRDUP_KEY |
                             AV_DICT_APPEND);
+                //coverity[Memory - corruptions]
                 av_freep(&ct);
             }
         }

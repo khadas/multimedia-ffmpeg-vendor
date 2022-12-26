@@ -576,6 +576,7 @@ av_cold int ff_rate_control_init(MpegEncContext *s)
             int e;
             char *next;
 
+            //coverity[Null pointer dereferences]
             next = strchr(p, ';');
             if (next) {
                 (*next) = 0; // sscanf is unbelievably slow on looong strings // FIXME copy / do not write

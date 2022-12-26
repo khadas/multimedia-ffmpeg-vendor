@@ -515,6 +515,7 @@ int av_packet_unpack_dictionary(const uint8_t *data, int size, AVDictionary **di
         if (val >= end || !*key)
             return AVERROR_INVALIDDATA;
 
+        //coverity[Memory - corruptions]
         ret = av_dict_set(dict, key, val, 0);
         if (ret < 0)
             break;

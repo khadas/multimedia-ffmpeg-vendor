@@ -122,6 +122,7 @@ static AVDictionary *map_to_opts(RTSPState *rt)
     char buf[256];
 
     snprintf(buf, sizeof(buf), "%d", rt->buffer_size);
+    //coverity[Memory - corruptions]
     av_dict_set(&opts, "buffer_size", buf, 0);
 
     return opts;
@@ -422,10 +423,12 @@ static void sdp_parse_line(AVFormatContext *s, SDPParseState *s1,
         }
         break;
     case 's':
+        //coverity[Memory - corruptions]
         av_dict_set(&s->metadata, "title", p, 0);
         break;
     case 'i':
         if (s->nb_streams == 0) {
+            //coverity[Memory - corruptions]
             av_dict_set(&s->metadata, "comment", p, 0);
             break;
         }
@@ -885,7 +888,7 @@ static void rtsp_parse_transport(AVFormatContext *s,
 {
     char transport_protocol[16];
     char profile[16];
-    char lower_transport[16];
+    char lower_transport[16] = {0};
     char parameter[16];
     RTSPTransportField *th;
     char buf[256];
@@ -1436,7 +1439,7 @@ int ff_rtsp_make_setup_request(AVFormatContext *s, const char *host, int port,
     port_off -= port_off & 0x01;
 
     for (j = rt->rtp_port_min + port_off, i = 0; i < rt->nb_rtsp_streams; ++i) {
-        char transport[2048];
+        char transport[2048] = {0};
 
         /*
          * WMS serves all UDP data over a single connection, the RTX, which
@@ -1479,6 +1482,7 @@ int ff_rtsp_make_setup_request(AVFormatContext *s, const char *host, int port,
                             "?localport=%d", j);
                 /* we will use two ports per rtp stream (rtp and rtcp) */
                 j += 2;
+                //coverity[Memory - illegal accesses]
                 err = ffurl_open_whitelist(&rtsp_st->rtp_handle, buf, AVIO_FLAG_READ_WRITE,
                                  &s->interrupt_callback, &opts, s->protocol_whitelist, s->protocol_blacklist, NULL);
 
@@ -1635,6 +1639,7 @@ int ff_rtsp_make_setup_request(AVFormatContext *s, const char *host, int port,
             goto fail;
     }
 
+    //coverity[Uninitialized variables]
     if (rt->nb_rtsp_streams && reply->timeout > 0)
         rt->timeout = reply->timeout;
 
@@ -2160,6 +2165,7 @@ redo:
     if (len == 0)
         return AVERROR_EOF;
     if (rt->transport == RTSP_TRANSPORT_RDT) {
+        //coverity[Null pointer dereferences]
         ret = ff_rdt_parse_packet(rtsp_st->transport_priv, pkt, &rt->recvbuf, len);
     } else if (rt->transport == RTSP_TRANSPORT_RTP) {
         ret = ff_rtp_parse_packet(rtsp_st->transport_priv, pkt, &rt->recvbuf, len);

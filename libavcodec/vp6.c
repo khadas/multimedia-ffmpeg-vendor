@@ -181,6 +181,7 @@ static int vp6_parse_header(VP56Context *s, const uint8_t *buf, int buf_size)
     return res;
 fail:
     if (res == VP56_SIZE_CHANGE)
+        //coverity[Error handling issues]
         ff_set_dimensions(s->avctx, 0, 0);
     return ret;
 }

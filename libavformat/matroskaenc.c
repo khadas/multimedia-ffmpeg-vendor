@@ -688,6 +688,7 @@ static int put_flac_codecpriv(AVFormatContext *s,
         int64_t len;
 
         snprintf(buf, sizeof(buf), "0x%"PRIx64, par->channel_layout);
+        //coverity[Memory-corruptions]
         av_dict_set(&dict, "WAVEFORMATEXTENSIBLE_CHANNEL_MASK", buf, 0);
 
         len = ff_vorbiscomment_length(dict, vendor);

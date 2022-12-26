@@ -427,6 +427,7 @@ static void guess_mv(ERContext *s)
         fixed[mb_xy] = f;
         if (f == MV_FROZEN)
             num_avail++;
+        //coverity[Null pointer dereferences]
         else if(s->last_pic.f->data[0] && s->last_pic.motion_val[0]){
             const int mb_y= mb_xy / s->mb_stride;
             const int mb_x= mb_xy % s->mb_stride;

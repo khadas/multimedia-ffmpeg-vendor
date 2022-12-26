@@ -867,6 +867,7 @@ static float *put_vector(vorbis_enc_codebook *book, PutBitContext *pb,
             distance = d;
         }
     }
+    //coverity[Integer handling issues]
     if (put_codeword(pb, book, entry))
         return NULL;
     return &book->dimensions[entry * book->ndimensions];

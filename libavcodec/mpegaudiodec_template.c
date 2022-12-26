@@ -1992,6 +1992,7 @@ static int decode_frame_mp3on4(AVCodecContext *avctx, void *data,
     /* update codec info */
     avctx->sample_rate = s->mp3decctx[0]->sample_rate;
 
+    //coverity[Integer handling issues]
     frame->nb_samples = out_size / (avctx->channels * sizeof(OUT_INT));
     *got_frame_ptr    = 1;
 

@@ -66,6 +66,7 @@ static int md5_close(URLContext *h)
         snprintf(buf + i*2, 3, "%02x", md5[i]);
     buf[i*2] = '\n';
 
+    //coverity[Error handling issues]
     av_strstart(filename, "md5:", &filename);
 
     if (*filename) {

@@ -181,10 +181,15 @@ static int open_slave(AVFormatContext *avf, char *slave, TeeSlave *tee_slave)
         }                                                               \
     } while (0)
 
+    //coverity[Memory - corruptions]
     STEAL_OPTION("f", format);
+    //coverity[Memory - corruptions]
     STEAL_OPTION("select", select);
+    //coverity[Memory - corruptions]
     STEAL_OPTION("onfail", on_fail);
+    //coverity[Memory - corruptions]
     STEAL_OPTION("use_fifo", use_fifo);
+    //coverity[Memory - corruptions]
     STEAL_OPTION("fifo_options", fifo_options_str);
 
     ret = parse_slave_failure_policy_option(on_fail, tee_slave);
@@ -582,6 +587,7 @@ static int tee_write_packet(AVFormatContext *avf, AVPacket *pkt)
         }
 
         while(1) {
+            //coverity[Error handling issues]
             ret = av_bsf_receive_packet(bsfs, &pkt2);
             if (ret == AVERROR(EAGAIN)) {
                 ret = 0;

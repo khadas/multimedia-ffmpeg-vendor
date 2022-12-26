@@ -269,6 +269,7 @@ static int read_header(AVFormatContext *avctx)
 
     guid = avio_rl64(pb);
     snprintf(guidstr, sizeof(guidstr), "0x%"PRIx64, guid);
+    //coverity[Memory-corruptions]
     av_dict_set(&avctx->metadata, "guid", guidstr, 0);
 
     avio_skip(pb, 8); //fileNum, fileCount, fileFlags

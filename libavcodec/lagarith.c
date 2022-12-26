@@ -163,6 +163,7 @@ static int lag_read_prob_header(lag_rac *rac, GetBitContext *gb)
             if (prob > 256 - i)
                 prob = 256 - i;
             for (j = 0; j < prob; j++)
+                //coverity[Memory - corruptions]
                 rac->prob[++i] = 0;
         }
     }

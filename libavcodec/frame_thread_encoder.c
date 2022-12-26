@@ -202,6 +202,7 @@ int ff_frame_thread_encoder_init(AVCodecContext *avctx, AVDictionary *options){
         thread_avctx->active_thread_type &= ~FF_THREAD_FRAME;
 
         av_dict_copy(&tmp, options, 0);
+        //coverity[Memory - corruptions]
         av_dict_set(&tmp, "threads", "1", 0);
         if(avcodec_open2(thread_avctx, avctx->codec, &tmp) < 0) {
             av_dict_free(&tmp);

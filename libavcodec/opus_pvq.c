@@ -368,6 +368,7 @@ static inline uint64_t celt_cwrsi(uint32_t N, uint32_t K, uint32_t i, int *y)
     /* N==1 */
     s     = -i;
     val   = (K + s) ^ s;
+    //coverity[Integer handling issues]
     norm += val * val;
     *y    = val;
 

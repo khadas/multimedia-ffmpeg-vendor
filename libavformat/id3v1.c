@@ -202,6 +202,7 @@ static void get_string(AVFormatContext *s, const char *key,
         *first_free_space = '\0';
 
     if (*str)
+        //coverity[Memory-corruptions]
         av_dict_set(&s->metadata, key, str, 0);
 }
 
@@ -218,6 +219,7 @@ static int parse_tag(AVFormatContext *s, const uint8_t *buf)
           buf[1] == 'A' &&
           buf[2] == 'G'))
         return -1;
+    //coverity[Memory-corruptions]
     get_string(s, "title",   buf +  3, 30);
     get_string(s, "artist",  buf + 33, 30);
     get_string(s, "album",   buf + 63, 30);

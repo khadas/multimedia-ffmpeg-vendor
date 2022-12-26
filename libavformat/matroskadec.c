@@ -868,6 +868,7 @@ static int ebml_read_num(MatroskaDemuxContext *matroska, AVIOContext *pb,
     }
 
     /* read out length */
+    //coverity[Integer handling issues]
     total ^= 1 << ff_log2_tab[total];
     while (n++ < read)
         total = (total << 8) | avio_r8(pb);
@@ -1045,6 +1046,7 @@ static int matroska_ebmlnum_sint(MatroskaDemuxContext *matroska,
         return res;
 
     /* make signed (weird way) */
+    //coverity[Integer handling issues]
     *num = unum - ((1LL << (7 * res - 1)) - 1);
 
     return res;
@@ -1513,6 +1515,7 @@ static void matroska_convert_tag(AVFormatContext *s, EbmlList *list,
         if (lang) {
             av_strlcat(key, "-", sizeof(key));
             av_strlcat(key, lang, sizeof(key));
+            //coverity[Memory-corruptions]
             av_dict_set(metadata, key, tags[i].string, 0);
             if (tags[i].sub.nb_elem)
                 matroska_convert_tag(s, &tags[i].sub, metadata, key);
@@ -1741,6 +1744,7 @@ static int matroska_aac_sri(int samplerate)
 static void matroska_metadata_creation_time(AVDictionary **metadata, int64_t date_utc)
 {
     /* Convert to seconds and adjust by number of seconds between 2001-01-01 and Epoch */
+    //coverity[Memory-corruptions]
     avpriv_dict_set_timestamp(metadata, "creation_time", date_utc / 1000 + 978307200000000LL);
 }
 
@@ -3958,6 +3962,7 @@ static int webm_dash_manifest_cues(AVFormatContext *s)
     matroska_parse_cues(matroska);
 
     // cues start
+    //coverity[Memory-corruptions]
     av_dict_set_int(&s->streams[0]->metadata, CUES_START, cues_start, 0);
 
     // cues end
@@ -3982,7 +3987,9 @@ static int webm_dash_manifest_cues(AVFormatContext *s)
         if (i != s->streams[0]->nb_index_entries - 1)
             strncat(buf, ",", sizeof(char));
     }
+    //coverity[Memory-corruptions]
     av_dict_set(&s->streams[0]->metadata, CUE_TIMESTAMPS, buf, 0);
+    //coverity[Memory-corruptions]
     av_free(buf);
 
     return 0;

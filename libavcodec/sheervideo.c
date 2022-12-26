@@ -2966,6 +2966,7 @@ static int decode_frame(AVCodecContext *avctx,
             ret |= build_vlc(&s->vlc[1], l_u_ybr, 256);
         }
         break;
+    //coverity[Control flow issues]
     case MKTAG('A', 'y', 'B', 'R'):
         s->alt = 1;
     case MKTAG('A', 'y', 'b', 'R'):
@@ -2976,6 +2977,7 @@ static int decode_frame(AVCodecContext *avctx,
             ret |= build_vlc(&s->vlc[1], l_u_ybri, 256);
         }
         break;
+    //coverity[Control flow issues]
     case MKTAG(' ', 'Y', 'B', 'R'):
         s->alt = 1;
     case MKTAG(' ', 'Y', 'b', 'R'):
@@ -2986,6 +2988,7 @@ static int decode_frame(AVCodecContext *avctx,
             ret |= build_vlc(&s->vlc[1], l_u_ybr, 256);
         }
         break;
+    //coverity[Control flow issues]
     case MKTAG(' ', 'y', 'B', 'R'):
         s->alt = 1;
     case MKTAG(' ', 'y', 'b', 'R'):

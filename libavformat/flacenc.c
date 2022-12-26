@@ -117,6 +117,7 @@ static int flac_write_header(struct AVFormatContext *s)
         } else {
             uint8_t buf[32];
             snprintf(buf, sizeof(buf), "0x%"PRIx64, par->channel_layout);
+            //coverity[Memory-corruptions]
             av_dict_set(&s->metadata, "WAVEFORMATEXTENSIBLE_CHANNEL_MASK", buf, 0);
         }
     }

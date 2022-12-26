@@ -1761,6 +1761,7 @@ static int handle_connect_error(URLContext *s, const char *desc)
     rt->auth_params[0] = '\0';
 
     if (strstr(desc, "code=403 need auth")) {
+        //coverity[Memory - corruptions]
         snprintf(rt->auth_params, sizeof(rt->auth_params),
                  "?authmod=%s&user=%s", authmod, rt->username);
         return 0;
@@ -2652,6 +2653,7 @@ static int rtmp_open(URLContext *s, const char *uri, int flags, AVDictionary **o
     }
     if (!strcmp(proto, "rtmpt") || !strcmp(proto, "rtmpts")) {
         if (!strcmp(proto, "rtmpts"))
+            //coverity[Memory - corruptions]
             av_dict_set(opts, "ffrtmphttp_tls", "1", 1);
 
         /* open the http tunneling connection */

@@ -656,6 +656,7 @@ static av_always_inline void hl_decode_mb_predict_luma(SVQ3Context *s,
             } else
                 topright = NULL;
 
+            //coverity[Null pointer dereferences]
             s->hpc.pred4x4[dir](ptr, topright, linesize);
             nnz = s->non_zero_count_cache[scan8[i]];
             if (nnz) {

@@ -202,6 +202,7 @@ static void decode_ppc(TwinVQContext *tctx, int period_coef, int g_coef,
         width = ROUNDED_DIV((period + 800) * mtab->peak_per2wid,
                             400 * mtab->size);
     } else
+        //coverity[Integer handling issues]
         width = period * mtab->peak_per2wid / (400 * mtab->size);
 
     add_peak(period, width, shape, ppc_gain, speech, mtab->ppc_shape_len);

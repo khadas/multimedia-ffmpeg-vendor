@@ -110,6 +110,7 @@ static int ape_tag_read_field(AVFormatContext *s)
             return c;
         }
         value[c] = 0;
+        //coverity[Memory-corruptions]
         av_dict_set(&s->metadata, key, value, AV_DICT_DONT_STRDUP_VAL);
     }
     return 0;

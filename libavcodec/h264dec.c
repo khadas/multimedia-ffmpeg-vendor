@@ -697,6 +697,7 @@ static int decode_nal_units(H264Context *h, const uint8_t *buf, int buf_size)
             max_slice_ctx = avctx->hwaccel ? 1 : h->nb_slice_ctx;
             if (h->nb_slice_ctx_queued == max_slice_ctx) {
                 if (h->avctx->hwaccel) {
+                    //coverity[Null pointer dereferences]
                     ret = avctx->hwaccel->decode_slice(avctx, nal->raw_data, nal->raw_size);
                     h->nb_slice_ctx_queued = 0;
                 } else
@@ -877,6 +878,7 @@ static int output_frame(H264Context *h, AVFrame *dst, H264Picture *srcp)
     if (ret < 0)
         return ret;
 
+    //coverity[Memory - corruptions]
     av_dict_set(&dst->metadata, "stereo_mode", ff_h264_sei_stereo_mode(&h->sei.frame_packing), 0);
 
     if (srcp->sei_recovery_frame_cnt == 0)
@@ -1022,6 +1024,7 @@ static int h264_decode_frame(AVCodecContext *avctx, void *data,
     if (h->is_avc && av_packet_get_side_data(avpkt, AV_PKT_DATA_NEW_EXTRADATA, NULL)) {
         int side_size;
         uint8_t *side = av_packet_get_side_data(avpkt, AV_PKT_DATA_NEW_EXTRADATA, &side_size);
+        //coverity[Null pointer dereferences]
         if (is_extra(side, side_size))
             ff_h264_decode_extradata(side, side_size,
                                      &h->ps, &h->is_avc, &h->nal_length_size,

@@ -258,6 +258,7 @@ static int fourxm_read_header(AVFormatContext *s)
 
             i += 8 + size;
         } else if (fourcc_tag == strk_TAG) {
+            //coverity[Null pointer dereferences]
             if ((ret = parse_strk(s, fourxm, header + i, size,
                                   header_size - i)) < 0)
                 goto fail;

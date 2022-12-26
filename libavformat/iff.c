@@ -230,6 +230,7 @@ static int parse_dsd_diin(AVFormatContext *s, AVStream *st, uint64_t eof)
 
         if (metadata_tag && size > 4) {
             unsigned int tag_size = avio_rb32(pb);
+            //coverity[Memory-corruptions]
             int ret = get_metadata(s, metadata_tag, FFMIN(tag_size, size - 4));
             if (ret < 0) {
                 av_log(s, AV_LOG_ERROR, "cannot allocate metadata tag %s!\n", metadata_tag);
@@ -264,6 +265,7 @@ static int parse_dsd_prop(AVFormatContext *s, AVStream *st, uint64_t eof)
             min  = avio_r8(pb);
             sec  = avio_r8(pb);
             snprintf(abss, sizeof(abss), "%02dh:%02dm:%02ds:%d", hour, min, sec, avio_rb32(pb));
+            //coverity[Memory-corruptions]
             av_dict_set(&st->metadata, "absolute_start_time", abss, 0);
             break;
 

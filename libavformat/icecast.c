@@ -111,10 +111,12 @@ static int icecast_open(URLContext *h, const char *uri, int flags)
     av_bprint_finalize(&bp, &headers);
 
     // Set options
+    //coverity[Memory-corruptions]
     av_dict_set(&opt_dict, "method", s->legacy_icecast ? "SOURCE" : "PUT", 0);
     av_dict_set(&opt_dict, "auth_type", "basic", 0);
     av_dict_set(&opt_dict, "headers", headers, 0);
     av_dict_set(&opt_dict, "chunked_post", "0", 0);
+    //coverity[Memory-corruptions]
     av_dict_set(&opt_dict, "send_expect_100", s->legacy_icecast ? "0" : "1", 0);
     if (NOT_EMPTY(s->content_type))
         av_dict_set(&opt_dict, "content_type", s->content_type, 0);
@@ -169,6 +171,7 @@ static int icecast_open(URLContext *h, const char *uri, int flags)
 
 cleanup:
     av_freep(&user);
+    //coverity[Memory-corruptions]
     av_freep(&headers);
     av_dict_free(&opt_dict);
 

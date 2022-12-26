@@ -363,6 +363,7 @@ static int mp3_write_audio_packet(AVFormatContext *s, AVPacket *pkt)
         }
     }
 
+    //coverity[Null pointer dereferences]
     return ff_raw_write_packet(s, pkt);
 }
 

@@ -692,7 +692,7 @@ static int qcelp_decode_frame(AVCodecContext *avctx, void *data,
     AVFrame *frame     = data;
     float *outbuffer;
     int   i, ret;
-    float quantized_lspf[10], lpc[10];
+    float quantized_lspf[10], lpc[10] = {0};
     float gain[16];
     float *formant_mem;
 

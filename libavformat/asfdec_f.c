@@ -366,6 +366,7 @@ static void get_tag(AVFormatContext *s, const char *key, int type, int len, int 
         av_dict_set(&s->metadata, key, value, 0);
 
 finish:
+    //coverity[Memory-corruptions]
     av_freep(&value);
     avio_seek(s->pb, off + len, SEEK_SET);
 }
@@ -629,9 +630,13 @@ static int asf_read_content_desc(AVFormatContext *s, int64_t size)
     len3 = avio_rl16(pb);
     len4 = avio_rl16(pb);
     len5 = avio_rl16(pb);
+    //coverity[Memory-corruptions]
     get_tag(s, "title", 0, len1, 32);
+    //coverity[Memory-corruptions]
     get_tag(s, "author", 0, len2, 32);
+    //coverity[Memory-corruptions]
     get_tag(s, "copyright", 0, len3, 32);
+    //coverity[Memory-corruptions]
     get_tag(s, "comment", 0, len4, 32);
     avio_skip(pb, len5);
 
@@ -666,6 +671,7 @@ static int asf_read_ext_content_desc(AVFormatContext *s, int64_t size)
         else if (!strcmp(name, "AspectRatioY"))
             asf->dar[0].den = get_value(s->pb, value_type, 32);
         else
+            //coverity[Memory-corruptions]
             get_tag(s, name, value_type, value_len, 32);
     }
 
@@ -731,6 +737,7 @@ static int asf_read_metadata(AVFormatContext *s, int64_t size)
         } else {
             get_tag(s, name, value_type, value_len, 16);
         }
+        //coverity[Memory-corruptions]
         av_freep(&name);
     }
 
@@ -758,6 +765,7 @@ static int asf_read_marker(AVFormatContext *s, int64_t size)
 
         avio_rl64(pb);             // offset, 8 bytes
         pres_time = avio_rl64(pb); // presentation time
+        //coverity[Integer handling issues]
         pres_time -= asf->hdr.preroll * 10000;
         avio_rl16(pb);             // entry length
         avio_rl32(pb);             // send time
@@ -862,6 +870,7 @@ static int asf_read_header(AVFormatContext *s)
                 } else if (!ff_guidcmp(&g, &ff_asf_ext_content_encryption)) {
                     av_log(s, AV_LOG_WARNING,
                            "Ext DRM protected stream detected, decoding will likely fail!\n");
+                    //coverity[Memory-corruptions]
                     av_dict_set(&s->metadata, "encryption", "ASF Extended Content Encryption", 0);
                 } else if (!ff_guidcmp(&g, &ff_asf_digital_signature)) {
                     av_log(s, AV_LOG_INFO, "Digital signature detected!\n");

@@ -116,6 +116,7 @@ static int read_header(AVFormatContext *s)
     if (!jv->frames)
         return AVERROR(ENOMEM);
 
+    //coverity[Integer handling issues]
     offset = 0x68 + ast->nb_index_entries * 16;
     for (i = 0; i < ast->nb_index_entries; i++) {
         AVIndexEntry *e   = ast->index_entries + i;

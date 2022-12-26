@@ -1755,6 +1755,7 @@ decode_cabac_residual_internal(const H264Context *h, H264SliceContext *sl,
     } while ( coeff_count );
 
     if (h->pixel_shift) {
+        //coverity[Memory - illegal accesses]
         STORE_BLOCK(int32_t)
     } else {
         STORE_BLOCK(int16_t)

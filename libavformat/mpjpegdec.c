@@ -167,6 +167,7 @@ static int parse_content_length(const char *value)
 
     if (val == LONG_MIN || val == LONG_MAX)
         return AVERROR(errno);
+    //coverity[Integer handling issues]
     if (val > INT_MAX)
         return AVERROR(ERANGE);
     return val;

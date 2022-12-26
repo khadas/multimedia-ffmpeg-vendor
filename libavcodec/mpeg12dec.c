@@ -1109,6 +1109,8 @@ static int mpeg_decode_update_thread_context(AVCodecContext *avctx,
         return err;
 
     if (!ctx->mpeg_enc_ctx_allocated)
+        //coverity[Memory - corruptions]
+        //coverity[Memory - illegal accesses]
         memcpy(s + 1, s1 + 1, sizeof(Mpeg1Context) - sizeof(MpegEncContext));
 
     if (!(s->pict_type == AV_PICTURE_TYPE_B || s->low_delay))

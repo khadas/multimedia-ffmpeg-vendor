@@ -248,6 +248,7 @@ static int asf_read_marker(AVFormatContext *s, const GUIDParseTable *g)
         if ((ret = avio_get_str16le(pb, len, name,
                                     sizeof(name))) < len)
             avio_skip(pb, len - ret);
+        //coverity[Memory-corruptions]
         avpriv_new_chapter(s, i, (AVRational) { 1, 10000000 }, pts,
                            AV_NOPTS_VALUE, name);
     }
@@ -300,9 +301,11 @@ static int asf_read_value(AVFormatContext *s, const uint8_t *name,
         else
             value[2 * val_len - 1] = '\0';
         snprintf(buf, sizeof(buf), "%s", value);
+        //coverity[Memory-corruptions]
         if (av_dict_set(met, name, buf, 0) < 0)
             av_log(s, AV_LOG_WARNING, "av_dict_set failed.\n");
     }
+    //coverity[Memory-corruptions]
     av_freep(&value);
 
     return 0;
@@ -347,6 +350,7 @@ static int asf_set_metadata(AVFormatContext *s, const uint8_t *name,
         return ret;
 
     snprintf(buf, sizeof(buf), "%"PRIu64, value);
+    //coverity[Memory-corruptions]
     if (av_dict_set(met, name, buf, 0) < 0)
         av_log(s, AV_LOG_WARNING, "av_dict_set failed.\n");
 
@@ -672,6 +676,7 @@ static int asf_read_properties(AVFormatContext *s, const GUIDParseTable *g)
         } else
             buf[0] = '\0';
         if (buf[0]) {
+            //coverity[Memory-corruptions]
             if (av_dict_set(&s->metadata, "creation_time", buf, 0) < 0)
                 av_log(s, AV_LOG_WARNING, "av_dict_set failed.\n");
         }
@@ -831,6 +836,7 @@ static void set_language(AVFormatContext *s, const char *rfc1766, AVDictionary *
         const char *iso6392       = ff_convert_lang_to(primary_tag,
                                                        AV_LANG_ISO639_2_BIBL);
         if (iso6392)
+            //coverity[Memory-corruptions]
             if (av_dict_set(met, "language", iso6392, 0) < 0)
                 av_log(s, AV_LOG_WARNING, "av_dict_set failed.\n");
     }

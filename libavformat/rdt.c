@@ -354,6 +354,7 @@ ff_rdt_parse_packet(RDTDemuxContext *s, AVPacket *pkt,
 
     if (len < 12)
         return -1;
+    //coverity[Null pointer dereferences]
     rv = ff_rdt_parse_header(buf, len, &set_id, &seq_no, &stream_id, &is_keyframe, &timestamp);
     if (rv < 0)
         return rv;

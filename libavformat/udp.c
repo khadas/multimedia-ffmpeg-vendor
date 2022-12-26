@@ -403,6 +403,7 @@ static int udp_socket_create(URLContext *h, struct sockaddr_storage *addr,
 
  fail:
     if (udp_fd >= 0)
+        //coverity[Control flow issues]
         closesocket(udp_fd);
     if(res0)
         freeaddrinfo(res0);

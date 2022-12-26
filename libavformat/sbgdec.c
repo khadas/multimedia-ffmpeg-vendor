@@ -914,6 +914,7 @@ static void expand_timestamps(void *log, struct sbg_script *s)
 #undef time
         time(&now0);
         tm = localtime_r(&now0, &tmpbuf);
+        //coverity[Integer handling issues]
         now = tm ? tm->tm_hour * 3600 + tm->tm_min * 60 + tm->tm_sec :
                    now0 % DAY;
         av_log(log, AV_LOG_INFO, "Using %02d:%02d:%02d as NOW.\n",

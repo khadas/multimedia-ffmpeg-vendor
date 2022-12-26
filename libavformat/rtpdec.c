@@ -792,6 +792,7 @@ static int rtp_parse_one_packet(RTPDemuxContext *s, AVPacket *pkt,
     if (len < 12)
         return -1;
 
+    //coverity[Null pointer dereferences]
     if ((buf[0] & 0xc0) != (RTP_VERSION << 6))
         return -1;
     if (RTP_PT_IS_RTCP(buf[1])) {
@@ -821,6 +822,7 @@ static int rtp_parse_one_packet(RTPDemuxContext *s, AVPacket *pkt,
             return -1;
         } else if (diff <= 1) {
             /* Correct packet */
+        //coverity[Null pointer dereferences]
             rv = rtp_parse_packet_internal(s, pkt, buf, len);
             return rv;
         } else {

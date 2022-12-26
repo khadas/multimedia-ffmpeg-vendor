@@ -273,7 +273,7 @@ int ff_init_vlc_sparse(VLC *vlc_arg, int nb_bits, int nb_codes,
 {
     VLCcode *buf;
     int i, j, ret;
-    VLCcode localbuf[1500]; // the maximum currently needed is 1296 by rv34
+    VLCcode localbuf[1500] = {0}; // the maximum currently needed is 1296 by rv34
     VLC localvlc, *vlc;
 
     vlc = vlc_arg;

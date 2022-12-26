@@ -579,6 +579,7 @@ static void merge_date(AVDictionary **m)
         !(t = get_date_tag(*m, "TYE")))
         return;
     av_strlcpy(date, t->value, 5);
+    //coverity[Memory-corruptions]
     av_dict_set(m, "TYER", NULL, 0);
     av_dict_set(m, "TYE", NULL, 0);
 

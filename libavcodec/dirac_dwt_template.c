@@ -478,6 +478,7 @@ static void RENAME(spatial_compose_daub97i_dy)(DWTContext *d, int level, int wid
 
 static void RENAME(spatial_compose97i_init)(DWTCompose *cs, uint8_t *buffer, int height, int stride)
 {
+    //coverity[Integer handling issues]
     cs->b[0] = buffer + avpriv_mirror(-3-1, height-1)*stride;
     cs->b[1] = buffer + avpriv_mirror(-3  , height-1)*stride;
     cs->b[2] = buffer + avpriv_mirror(-3+1, height-1)*stride;
@@ -487,6 +488,7 @@ static void RENAME(spatial_compose97i_init)(DWTCompose *cs, uint8_t *buffer, int
 
 static void RENAME(spatial_compose53i_init)(DWTCompose *cs, uint8_t *buffer, int height, int stride)
 {
+    //coverity[Integer handling issues]
     cs->b[0] = buffer + avpriv_mirror(-1-1, height-1)*stride;
     cs->b[1] = buffer + avpriv_mirror(-1  , height-1)*stride;
     cs->y = -1;

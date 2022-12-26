@@ -2766,6 +2766,7 @@ static void spectral_to_sample(AACContext *ac, int samples)
                     }
                 }
                 if (che->ch[0].tns.present)
+                    //coverity[Memory - corruptions]
                     ac->apply_tns(che->ch[0].coeffs, &che->ch[0].tns, &che->ch[0].ics, 1);
                 if (che->ch[1].tns.present)
                     ac->apply_tns(che->ch[1].coeffs, &che->ch[1].tns, &che->ch[1].ics, 1);
