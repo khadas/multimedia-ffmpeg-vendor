@@ -3613,6 +3613,11 @@ static void mov_fix_index(MOVContext *mov, AVStream *st)
                 break;
             }
         }
+        // Skip the next edit list entries if current edit list entry with a non-negative media time,
+        // Otherwise it will cause the video to play twice
+        if (edit_list_media_time >= 0) {
+            break;
+        }
     }
     // Update av stream length
     st->duration = edit_list_dts_entry_end - start_dts;
@@ -6543,7 +6548,7 @@ static AVIndexEntry *mov_find_next_sample(AVFormatContext *s, AVStream **st)
     for (i = 0; i < s->nb_streams; i++) {
         AVStream *avst = s->streams[i];
         MOVStreamContext *msc = avst->priv_data;
-        if (msc->pb && msc->current_sample < avst->nb_index_entries && msc->current_sample < msc->sample_count) {
+        if (msc->pb && msc->current_sample < avst->nb_index_entries) {
             AVIndexEntry *current_sample = &avst->index_entries[msc->current_sample];
             int64_t dts = av_rescale(current_sample->timestamp, AV_TIME_BASE, msc->time_scale);
             av_log(s, AV_LOG_TRACE, "stream %d, sample %d, dts %"PRId64"\n", i, msc->current_sample, dts);
