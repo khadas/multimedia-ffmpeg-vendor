@@ -285,6 +285,7 @@ retry:
                     ret = AVERROR(ENOMEM);
                     goto fail;
                 }
+                memset(seg, 0, sizeof(struct segment));
                 seg->duration = duration;
                 if (key_type != KEY_NONE)
                 {
