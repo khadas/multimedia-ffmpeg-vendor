@@ -3960,6 +3960,72 @@ static int avformat_check_dv_meta_el(AVFormatContext *ic, AVStream *st, const ui
     return ret;
 }
 
+#define    DCA_SYNCWORD_CORE_BE              0x7FFE8001U
+#define    DCA_SYNCWORD_CORE_LE              0xFE7F0180U
+#define    DCA_SYNCWORD_CORE_14B_BE          0x1FFFE800U
+#define    DCA_SYNCWORD_CORE_14B_LE          0xFF1F00E8U
+
+static void avformat_check_ac3_aac(AVFormatContext *ic, AVStream *st, const uint8_t *buf, int buf_size) {
+    if (!buf || buf_size < 6) {
+        return;
+    }
+
+    // check input format and codec id, only check ac3/aac in mpegts
+    if ((st->codecpar->codec_id != AV_CODEC_ID_AC3 && st->codecpar->codec_id != AV_CODEC_ID_AAC)
+        || strcmp(ic->iformat->name, "mpegts")) {
+        return;
+    }
+
+    if (st->codecpar->codec_id == AV_CODEC_ID_AC3) {
+        uint32_t dts_sync_word = (buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | buf[3];
+        if (dts_sync_word == DCA_SYNCWORD_CORE_BE
+            || dts_sync_word == DCA_SYNCWORD_CORE_LE
+            || dts_sync_word == DCA_SYNCWORD_CORE_14B_BE
+            || dts_sync_word == DCA_SYNCWORD_CORE_14B_LE) {
+            st->codecpar->codec_id = AV_CODEC_ID_DTS;
+            st->internal->need_context_update = 1;
+            av_log(ic, AV_LOG_INFO, "found dts audio sync word 0x%08x, change codec type to dts\n", dts_sync_word);
+        }
+
+        uint16_t ac3_sync_word = (buf[0] << 8) | buf[1];
+        if (ac3_sync_word == 0x0B77) {
+            unsigned char bitstream_id = (((buf[4] & 0x07) << 5) | ((buf[5] & 0Xf8) >> 3)) & 0x1f;
+            if (bitstream_id > 10 && bitstream_id <= 16) {
+                st->codecpar->codec_id = AV_CODEC_ID_EAC3;
+                st->internal->need_context_update = 1;
+                av_log(ic, AV_LOG_INFO, "found ac3 audio sync word 0x%04x, bitstream_id %d, change codec type to eac3\n", ac3_sync_word);
+            }
+        }
+    } else if (!av_dict_get(st->metadata, "aac_adts_csd", NULL, 0)) {
+        uint8_t profile, sampling_freq_index, channel_configuration;
+        uint8_t header[2];
+        uint8_t csd[2];
+        // adts sync word 12bit 0xfff
+        if ((buf[0] << 8) | (buf[1] & 0xf0) == 0xfff0) {
+            memcpy(header, buf + 2, 2);
+            profile = (header[0] >> 6) & 0x3;
+            if (profile == 3) {
+                av_log(ic, AV_LOG_WARNING, "profile should not be 3\n");
+                return;
+            }
+            sampling_freq_index = (header[0] >> 2) & 0xf;
+            if (sampling_freq_index > 11) {
+                av_log(ic, AV_LOG_WARNING, "sampling_freq_index should not large than 11\n");
+                return;
+            }
+            channel_configuration = (header[0] & 0x1) << 2 | (header[1] >> 6);
+            if (channel_configuration == 0) {
+                av_log(ic, AV_LOG_WARNING, "channel_config should not be 0\n");
+                return;
+            }
+            csd[0] = ((profile + 1) << 3) | (sampling_freq_index >> 1);
+            csd[1] = ((sampling_freq_index << 7) & 0x80) | (channel_configuration << 3);
+            av_dict_set_int(&st->metadata, "aac_adts_csd", ((csd[0] << 8) | csd[1]), 0);
+            av_log(ic, AV_LOG_INFO, "aac_adts_csd [%02x %02x]\n", csd[0], csd[1]);
+        }
+    }
+}
+
 // Returns the frame length in bytes as described in an ADTS header starting at the given offset,
 //     or 0 if the size can't be read due to an error in the header or a read failure.
 // The returned value is the AAC frame size with the ADTS header length (regardless of
@@ -4403,6 +4469,8 @@ FF_ENABLE_DEPRECATION_WARNINGS
 
         // check dolby-vision meta or el
         avformat_check_dv_meta_el(ic, st, pkt->data, pkt->size);
+        // check ac3 and aac audio
+        avformat_check_ac3_aac(ic, st, pkt->data, pkt->size);
 
         if (ic->flags & AVFMT_FLAG_NOBUFFER)
             av_packet_unref(pkt);
