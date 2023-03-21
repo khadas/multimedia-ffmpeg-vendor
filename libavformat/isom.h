@@ -272,6 +272,7 @@ typedef struct MOVContext {
     /* 1 - can seek */
     /* 0 - can't seek */
     int64_t can_seek;
+    int found_audio_presentation;
     int keyframe_count;
 } MOVContext;
 

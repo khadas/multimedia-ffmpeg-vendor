@@ -1588,6 +1588,10 @@ enum AVPacketSideDataType {
      * to the AVSphericalMapping structure.
      */
     AV_PKT_DATA_SPHERICAL,
+    /**
+     * for AC4 audio.
+     */
+    AV_PKT_AUDIO_PRESELECTION_DATA,
 };
 
 #define AV_PKT_DATA_QUALITY_FACTOR AV_PKT_DATA_QUALITY_STATS //DEPRECATED
@@ -4616,6 +4620,9 @@ int av_packet_shrink_side_data(AVPacket *pkt, enum AVPacketSideDataType type,
  */
 uint8_t* av_packet_get_side_data(const AVPacket *pkt, enum AVPacketSideDataType type,
                                  int *size);
+
+int av_packet_update_side_data(AVPacket *pkt, enum AVPacketSideDataType type,
+                            uint8_t *data, size_t size);
 
 #if FF_API_MERGE_SD_API
 attribute_deprecated

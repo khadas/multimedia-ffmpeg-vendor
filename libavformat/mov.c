@@ -1958,6 +1958,29 @@ static int mov_read_dvcC(MOVContext *c, AVIOContext *pb, MOVAtom atom) {
     return mov_read_dvcC_dvvC_dvwC(c, pb, atom, AV_DV_BOX_TYPE_DVCC);
 }
 
+static int mov_read_dac4(MOVContext *c, AVIOContext *pb, MOVAtom atom) {
+    int ret;
+    AVStream *st;
+    if (c->fc->nb_streams < 1)
+        return 0;
+
+    st = c->fc->streams[c->fc->nb_streams-1];
+
+    uint8_t *ac4_data = av_malloc(atom.size);
+    if (!ac4_data)
+        return -1;
+    memcpy(ac4_data, pb->buf_ptr, atom.size);
+    ret = av_stream_add_side_data(st, AV_PKT_AUDIO_PRESELECTION_DATA,
+                                  ac4_data, atom.size);
+    if (ret < 0) {
+        av_free(ac4_data);
+        av_log(c,AV_LOG_ERROR,"mov_read_dac4 error, av_stream_add_side_data return %d",ret);
+        return ret;
+    }
+
+    return 0;
+}
+
 /**
  * This function reads atom content and puts data in extradata without tag
  * nor size unlike mov_read_extradata.
@@ -5727,6 +5750,7 @@ static const MOVParseTableEntry mov_default_parse_table[] = {
 { MKTAG('d','v','v','C'), mov_read_dvvC }, /* Dolby Vision configuration box*/
 { MKTAG('p','s','s','h'), mov_read_pssh }, /* Dolby Vision configuration box*/
 { MKTAG('d','v','w','C'), mov_read_dvwC }, /* Dolby Vision configuration box*/
+{ MKTAG('d','a','c','4'), mov_read_dac4 },
 
 
 { 0, NULL }
@@ -6349,6 +6373,7 @@ static int mov_read_header(AVFormatContext *s)
         return AVERROR(EINVAL);
     }
 
+    mov->found_audio_presentation = 0;
     mov->fc = s;
     mov->trak_index = -1;
     /* .mov and .mp4 aren't streamable anyway (only progressive download if moov is before mdat) */
@@ -6777,6 +6802,18 @@ static int mov_read_packet(AVFormatContext *s, AVPacket *pkt)
         ret = cenc_filter(mov, sc, current_index, pkt->data, pkt->size);
         if (ret) {
             return ret;
+        }
+    }
+
+    if (s->nb_streams > 0 && s->streams[pkt->stream_index] &&
+        s->streams[pkt->stream_index]->codec &&
+        s->streams[pkt->stream_index]->codec->codec_id == AV_CODEC_ID_AC4 &&
+        !mov->found_audio_presentation) {
+        int size = 0;
+        unsigned char * sidedata = av_stream_get_side_data(s->streams[pkt->stream_index], AV_PKT_AUDIO_PRESELECTION_DATA, &size);
+        if (sidedata) {
+            av_packet_update_side_data(pkt, AV_PKT_AUDIO_PRESELECTION_DATA, sidedata, size);
+            mov->found_audio_presentation = 1;
         }
     }
 
