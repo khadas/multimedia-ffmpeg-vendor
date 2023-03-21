@@ -4188,6 +4188,14 @@ static int mov_read_keys(MOVContext *c, AVIOContext *pb, MOVAtom atom)
             return AVERROR_INVALIDDATA;
         }
         key_size -= 8;
+        if (key_size > atom.size) {
+            // Ignore mistake key, meta_keys_count = i - 1 + 1
+            c->meta_keys_count = i;
+            av_log(c->fc, AV_LOG_ERROR,
+                   "The key# %"PRIu32" in meta has invalid size:"
+                   "%"PRIu32"\n", i, key_size);
+            return 0;
+        }
         if (type != MKTAG('m','d','t','a')) {
             avio_skip(pb, key_size);
         }
