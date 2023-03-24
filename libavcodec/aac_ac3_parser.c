@@ -29,7 +29,7 @@ static void set_codec_params(AVCodecContext *avctx,AACAC3ParseContext *s) {
     if (s == NULL || avctx == NULL) {
         return;
     }
-    if (avctx->channels <= 0 && s->channels > 0)
+    if (avctx->channels < s->channels)
         avctx->channels = s->channels;
 
     if (avctx->sample_rate <= 0 && s->sample_rate > 0)
@@ -38,7 +38,7 @@ static void set_codec_params(AVCodecContext *avctx,AACAC3ParseContext *s) {
     if (avctx->bit_rate <= 0 && s->bit_rate > 0)
         avctx->bit_rate = s->bit_rate;
 
-    if (avctx->channel_layout <= 0 && s->channel_layout > 0)
+    if (avctx->channel_layout < s->channel_layout)
         avctx->channel_layout = s->channel_layout;
 
     return;
