@@ -809,6 +809,9 @@ FF_ENABLE_DEPRECATION_WARNINGS
                                   "mov tag found in avi (fourcc %s)\n",
                                   av_fourcc2str(tag1));
                     }
+                    if (!st->codecpar->codec_id)
+                        st->codecpar->codec_id = ff_codec_get_id(ff_codec_bmp_tags_unofficial, tag1);
+
                     /* This is needed to get the pict type which is necessary
                      * for generating correct pts. */
                     st->need_parsing = AVSTREAM_PARSE_HEADERS;
@@ -821,6 +824,9 @@ FF_ENABLE_DEPRECATION_WARNINGS
                         st->need_parsing = AVSTREAM_PARSE_FULL;
                     if (st->codecpar->codec_id == AV_CODEC_ID_RV40)
                         st->need_parsing = AVSTREAM_PARSE_NONE;
+                    if (st->codecpar->codec_id == AV_CODEC_ID_HEVC &&
+                        st->codecpar->codec_tag == MKTAG('H', '2', '6', '5'))
+                        st->need_parsing = AVSTREAM_PARSE_FULL;
 
                     if (st->codecpar->codec_tag == 0 && st->codecpar->height > 0 &&
                         st->codecpar->extradata_size < 1U << 30) {
