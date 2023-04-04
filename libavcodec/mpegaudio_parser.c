@@ -70,6 +70,9 @@ static int mpegaudio_parse(AVCodecParserContext *s1,
                 state= (state<<8) + buf[i++];
 
                 ret = ff_mpa_decode_header(state, &sr, &channels, &frame_size, &bit_rate, &codec_id);
+                if (avctx->codec_id == AV_CODEC_ID_MP3 && codec_id == AV_CODEC_ID_MP2) {
+                    avctx->codec_id = AV_CODEC_ID_MP2;
+                }
                 if (ret < 4) {
                     if (i > 4)
                         s->header_count = -2;
@@ -90,9 +93,6 @@ static int mpegaudio_parse(AVCodecParserContext *s1,
                             s->no_bitrate = 1;
                             avctx->bit_rate += (bit_rate - avctx->bit_rate) / (s->header_count - header_threshold);
                         }
-                    }
-                    if (avctx->codec_id == AV_CODEC_ID_MP3 && codec_id == AV_CODEC_ID_MP2) {
-                        avctx->codec_id = AV_CODEC_ID_MP2;
                     }
 
                     if (s1->flags & PARSER_FLAG_COMPLETE_FRAMES) {
