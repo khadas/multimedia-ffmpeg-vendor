@@ -3393,15 +3393,19 @@ static void mov_fix_index(MOVContext *mov, AVStream *st)
     }
 
     // check edit list
-    if (get_edit_list_entry(mov, msc, edit_list_index, &edit_list_media_time,
+    while (get_edit_list_entry(mov, msc, edit_list_index, &edit_list_media_time,
                             &edit_list_duration, mov->time_scale)) {
         if (!edit_list_duration) {
                av_log(mov->fc, AV_LOG_WARNING, "edit list entry no duration\n");
                return;
         }
-    } else {
+        edit_list_index++;
+    }
+    if (edit_list_index == 0) {
         av_log(mov->fc, AV_LOG_WARNING, "no edit list entry\n");
         return;
+    } else {
+        edit_list_index = 0;
     }
     // allocate the index ranges array
     msc->index_ranges = av_malloc((msc->elst_count + 1) * sizeof(msc->index_ranges[0]));
