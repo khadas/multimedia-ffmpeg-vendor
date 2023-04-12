@@ -978,7 +978,122 @@ static int mov_read_dec3(MOVContext *c, AVIOContext *pb, MOVAtom atom)
 
     return 0;
 }
+#define AVS3P6_DEFINITION 1
+#ifdef AVS3P6_DEFINITION
+typedef struct {
+    const char*  tag;
+    uint8_t  channels;
+}ff_av3a_chan_map ;
 
+static const ff_av3a_chan_map av3a_chan_config_table[] = {
+    {"Mono",   1},
+    {"Stereo", 2},
+    {"5.1",    6},
+    {"7.1",    8},
+    {"10.2",   12},
+    {"22.2",   24},
+    {"4.0",    4},
+    {"5.1.2",  8},
+    {"5.1.4",  10},
+    {"7.1.2",  10},
+    {"7.1.4",  12},
+    {"Unknown", 0}
+};
+
+static int mov_read_dca3(MOVContext *c, AVIOContext *pb, MOVAtom atom)
+{
+    AVStream *st;
+    if (c->fc->nb_streams < 1)
+        return 0;
+    st = c->fc->streams[c->fc->nb_streams-1];
+    st->codecpar->frame_size  = 1024;
+
+    uint8_t buff[7];
+    GetBitContext gb;
+    uint8_t  codec_id, sr_idx, nn_type, content_type, ch_idx, num_objects;
+    uint8_t  hoa_order;
+    uint16_t brt_kbps;
+    uint8_t  resolution, resolution_idx;
+    uint32_t sr_map[] = { 192000, 96000, 48000, 44100, 32000, 24000, 22050, 16000, 8000};
+    uint8_t res_map[] = { 8, 16, 24};
+
+    ff_av3a_chan_map chan_map;
+
+    if (c->fc->nb_streams < 1)
+        return 0;
+    st = c->fc->streams[c->fc->nb_streams-1];
+
+    avio_read(pb, buff, sizeof(buff));
+
+    init_get_bits8(&gb, buff, sizeof(buff));
+
+    codec_id = get_bits(&gb, 4);
+    sr_idx = get_bits(&gb, 4);
+
+    if (codec_id == 2) {
+        nn_type      = get_bits(&gb, 3);
+        content_type = get_bits(&gb, 3);
+
+        if (content_type == 0) {
+            ch_idx = get_bits(&gb, 8);
+        }
+        else if (content_type == 1) {
+            num_objects = get_bits(&gb, 8);
+        }
+        else if (content_type == 2) {
+            ch_idx = get_bits(&gb, 8);
+            num_objects = get_bits(&gb, 8);
+        }
+        else if (content_type == 3) {
+            hoa_order = get_bits(&gb, 4);
+        }
+
+        brt_kbps = get_bits(&gb, 16);
+    }
+
+    resolution_idx = get_bits(&gb, 2);
+    resolution     = res_map[resolution_idx];
+
+    st->codecpar->frame_size  = 1024; // fixed frame size
+    st->codecpar->sample_rate = sr_map[sr_idx];
+
+    switch (content_type)
+    {
+    case 0:
+        chan_map = av3a_chan_config_table[ch_idx];
+        av_log(c->fc, AV_LOG_INFO, "Output Stream AVS3P3/Audio Vivid: %d Hz, %s(%d channels), s%d, %d kbps \n",
+            st->codecpar->sample_rate, chan_map.tag, chan_map.channels, resolution, brt_kbps);
+        break;
+    case 1:
+        av_log(c->fc, AV_LOG_INFO, "Output Stream AVS3P3/Audio Vivid: %d Hz, %d objects, s%d, %d kbps \n",
+            st->codecpar->sample_rate, num_objects, resolution, brt_kbps);
+        break;
+    case 2:
+        chan_map = av3a_chan_config_table[ch_idx];
+        av_log(c->fc, AV_LOG_INFO, "Output Stream AVS3P3/Audio Vivid: %d Hz, %s + %d objects (%d channels), s%d, %d kbps \n",
+            st->codecpar->sample_rate, chan_map.tag, num_objects, chan_map.channels + num_objects, resolution, brt_kbps);
+        break;
+    case 3:
+        av_log(c->fc, AV_LOG_INFO, "Output Stream AVS3P3/Audio Vivid: %d Hz, %drd order Ambisonics (%d channels), s%d, %d kbps \n",
+            st->codecpar->sample_rate, hoa_order, (hoa_order + 1) * (hoa_order + 1), resolution, brt_kbps);
+    default:
+        break;
+    }
+    st->codecpar->bit_rate = brt_kbps * 1000;
+
+    return 0;
+}
+#else
+static int mov_read_dca3(MOVContext *c, AVIOContext *pb, MOVAtom atom)
+{
+    AVStream *st;
+    if (c->fc->nb_streams < 1)
+        return 0;
+    st = c->fc->streams[c->fc->nb_streams-1];
+
+    return 0;
+}
+#endif
 static int mov_read_ddts(MOVContext *c, AVIOContext *pb, MOVAtom atom)
 {
     const uint32_t ddts_size = 20;
@@ -2529,6 +2644,7 @@ static int mov_finalize_stsd_codec(MOVContext *c, AVIOContext *pb,
     case AV_CODEC_ID_MPEG1VIDEO:
     case AV_CODEC_ID_VC1:
     case AV_CODEC_ID_VP9:
+    case AV_CODEC_ID_AVS3_AUDIO:
         st->need_parsing = AVSTREAM_PARSE_FULL;
         break;
     case AV_CODEC_ID_AC4:
@@ -5755,7 +5871,7 @@ static const MOVParseTableEntry mov_default_parse_table[] = {
 { MKTAG('p','s','s','h'), mov_read_pssh }, /* Dolby Vision configuration box*/
 { MKTAG('d','v','w','C'), mov_read_dvwC }, /* Dolby Vision configuration box*/
 { MKTAG('d','a','c','4'), mov_read_dac4 },
-
+{ MKTAG('d','c','a','3'), mov_read_dca3 },
 
 { 0, NULL }
 };

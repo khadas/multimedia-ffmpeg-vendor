@@ -3445,11 +3445,9 @@ const char *avcodec_profile_name(enum AVCodecID codec_id, int profile)
 
     if (profile == FF_PROFILE_UNKNOWN || !desc || !desc->profiles)
         return NULL;
-
     for (p = desc->profiles; p->profile != FF_PROFILE_UNKNOWN; p++)
         if (p->profile == profile)
             return p->name;
-
     return NULL;
 }
 
@@ -3627,6 +3625,7 @@ static int get_audio_frame_duration(enum AVCodecID id, int sr, int ch, int ba,
     case AV_CODEC_ID_MP2:
     case AV_CODEC_ID_MUSEPACK7:    return 1152;
     case AV_CODEC_ID_AC3:          return 1536;
+    case AV_CODEC_ID_AVS3_AUDIO:   return 1024;
     }
 
     if (sr > 0) {

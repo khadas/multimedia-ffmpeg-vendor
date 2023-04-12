@@ -726,6 +726,7 @@ static const StreamType ISO_types[] = {
     { 0xd4, AVMEDIA_TYPE_VIDEO, AV_CODEC_ID_AVS3       },
     { 0xd6, AVMEDIA_TYPE_VIDEO, AV_CODEC_ID_AVS3       },
     { 0xea, AVMEDIA_TYPE_VIDEO, AV_CODEC_ID_VC1        },
+    { 0xd5, AVMEDIA_TYPE_AUDIO, AV_CODEC_ID_AVS3_AUDIO }, /* AVS3 3D Audio Stream Type */
     { 0 },
 };
 
@@ -771,6 +772,7 @@ static const StreamType REGD_types[] = {
     { MKTAG('I', 'D', '3', ' '), AVMEDIA_TYPE_DATA,  AV_CODEC_ID_TIMED_ID3 },
     { MKTAG('V', 'C', '-', '1'), AVMEDIA_TYPE_VIDEO, AV_CODEC_ID_VC1   },
     { MKTAG('O', 'p', 'u', 's'), AVMEDIA_TYPE_AUDIO, AV_CODEC_ID_OPUS  },
+    { MKTAG('a', 'v', '3', 'a'), AVMEDIA_TYPE_AUDIO, AV_CODEC_ID_AVS3_AUDIO},
     { MKTAG('D', 'R', 'A', '1'), AVMEDIA_TYPE_AUDIO, AV_CODEC_ID_DRA },
     { MKTAG('d', 'v', 'h', 'e'), AVMEDIA_TYPE_VIDEO , AV_CODEC_ID_HEVC}, /* HEVC Dobly vision  ES  dvhe*/
     { MKTAG('D', 'O', 'V', 'I'), AVMEDIA_TYPE_VIDEO , AV_CODEC_ID_HEVC}, /* HEVC Dobly vision  ES  dovi*/
@@ -1685,7 +1687,6 @@ static void m4sl_cb(MpegTSFilter *filter, const uint8_t *section,
             if (st->codecpar->codec_id == AV_CODEC_ID_H264 &&
                 st->codecpar->extradata_size > 0)
                 st->need_parsing = 0;
-
             st->codecpar->codec_type = avcodec_get_type(st->codecpar->codec_id);
             st->internal->need_context_update = 1;
         }

@@ -724,9 +724,9 @@ static int mov_write_wave_tag(AVFormatContext *s, AVIOContext *pb, MOVTrack *tra
         ffio_wfourcc(pb, "mp4a");
         avio_wb32(pb, 0);
         mov_write_esds_tag(pb, track);
-    } else if (mov_pcm_le_gt16(track->par->codec_id))  {
+    } else if (mov_pcm_le_gt16(track->par->codec_id)) {
       mov_write_enda_tag(pb);
-    } else if (mov_pcm_be_gt16(track->par->codec_id))  {
+    } else if (mov_pcm_be_gt16(track->par->codec_id)) {
       mov_write_enda_tag_be(pb);
     } else if (track->par->codec_id == AV_CODEC_ID_AMR_NB) {
         mov_write_amr_tag(pb, track);
@@ -924,7 +924,69 @@ static int get_samples_per_packet(MOVTrack *track)
     }
     return first_duration;
 }
+static int mov_write_dca3_tag(AVFormatContext *s, AVIOContext *pb, MOVTrack *track){
 
+    /* CA3SpecificBox extend box  */
+    int64_t pos = avio_tell(pb);
+
+#ifdef AVS3P6_DEFINITION
+    uint8_t buff[7];
+    int sr_map[9] = { 192000, 96000, 48000, 44100, 32000, 24000, 22050, 16000, 8000};
+    uint8_t  codec_id, sr_idx, nn_type, content_type, ch_idx, num_objects, hoa_order, resolution_idx;
+    uint16_t brt_kbps;
+
+    avio_wb32(pb, 0);               /* Size */
+    ffio_wfourcc(pb, "dca3");       /* Type */
+    PutBitContext pb_dca3;
+
+    init_put_bits(&pb_dca3, buff, 7);
+
+    codec_id       = AV_RB8(track->par->extradata  + 0);  /* audio codec id */
+    sr_idx         = AV_RB8(track->par->extradata  + 1);  /* stamping rate index */
+    nn_type        = AV_RB8(track->par->extradata  + 2);  /* nn type */
+    content_type   = AV_RB8(track->par->extradata  + 3);  /* content type */
+    ch_idx         = AV_RB8(track->par->extradata  + 4);  /* channel config index */
+    num_objects    = AV_RB8(track->par->extradata  + 5);  /* number of objects */
+    hoa_order      = AV_RB8(track->par->extradata  + 6);  /* hoa order */
+    resolution_idx = AV_RB8(track->par->extradata  + 7);  /* resolution index */
+    brt_kbps       = AV_RL16(track->par->extradata + 8);  /* total bitrate */
+
+    /* default audio codec id = 2 */
+    put_bits(&pb_dca3, 4, codec_id); /* audio codec id */
+    put_bits(&pb_dca3, 4, sr_idx);   /* stamping rate index */
+
+    if (codec_id == 2) {
+        put_bits(&pb_dca3, 3, nn_type);
+        put_bits(&pb_dca3, 3, content_type);
+
+        if (content_type == 0) {
+            put_bits(&pb_dca3, 8, ch_idx);
+        }
+        else if (content_type == 1) {
+            put_bits(&pb_dca3, 8, num_objects);
+        }
+        else if (content_type == 2) {
+            put_bits(&pb_dca3, 8, ch_idx);
+            put_bits(&pb_dca3, 8, num_objects);
+        }
+        else if (content_type == 3) {
+            put_bits(&pb_dca3, 4, hoa_order);
+        }
+
+        put_bits(&pb_dca3, 16, brt_kbps);
+    }
+
+    put_bits(&pb_dca3, 2, resolution_idx);
+
+    flush_put_bits(&pb_dca3);
+
+    avio_write(pb, buff, sizeof(buff));
+
+    track->par->sample_rate = track->par->sample_rate == 0? sr_map[sr_idx] : track->par->sample_rate;
+#endif
+
+    return update_size(pb, pos);
+}
 static int mov_write_audio_tag(AVFormatContext *s, AVIOContext *pb, MOVMuxContext *mov, MOVTrack *track)
 {
     int64_t pos = avio_tell(pb);
@@ -1033,6 +1095,8 @@ static int mov_write_audio_tag(AVFormatContext *s, AVIOContext *pb, MOVMuxContex
         mov_write_ac3_tag(pb, track);
     else if (track->par->codec_id == AV_CODEC_ID_EAC3)
         mov_write_eac3_tag(pb, track);
+    else if (track->par->codec_id == AV_CODEC_ID_AVS3_AUDIO)
+        mov_write_dca3_tag(s, pb, track);
     else if (track->par->codec_id == AV_CODEC_ID_ALAC)
         mov_write_extradata_tag(pb, track);
     else if (track->par->codec_id == AV_CODEC_ID_WMAPRO)

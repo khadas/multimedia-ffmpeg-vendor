@@ -1305,6 +1305,13 @@ static const AVCodecDescriptor codec_descriptors[] = {
         .props     = AV_CODEC_PROP_LOSSLESS,
     },
     {
+        .id        = AV_CODEC_ID_AVS3_AUDIO,
+        .type      = AVMEDIA_TYPE_AUDIO,
+        .name      = "avs3p3_3d_audio",
+        .long_name = NULL_IF_CONFIG_SMALL("AVS3-P3 3D Audio/Audio Vivid bitstream"),
+        .props     = AV_CODEC_PROP_LOSSY | AV_CODEC_PROP_LOSSLESS,
+    },
+    {
         .id        = AV_CODEC_ID_RSCC,
         .type      = AVMEDIA_TYPE_VIDEO,
         .name      = "rscc",

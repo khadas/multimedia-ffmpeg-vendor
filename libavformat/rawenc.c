@@ -168,6 +168,20 @@ AVOutputFormat ff_eac3_muxer = {
 };
 #endif
 
+/*#if CONFIG_AV3A_MUXER
+AVOutputFormat ff_av3a_muxer = {
+    .name              = "av3a",
+    .long_name         = NULL_IF_CONFIG_SMALL("AVS3-P3 3D Audio/Audio Vivid bitstream muxer"),
+    .mime_type         = "audio/av3a",
+    .extensions        = "av3a",
+    .audio_codec       = AV_CODEC_ID_AVS3_AUDIO,
+    .video_codec       = AV_CODEC_ID_NONE,
+    .init              = force_one_stream,
+    .write_packet      = ff_raw_write_packet,
+    .flags             = AVFMT_NOTIMESTAMPS,
+};
+#endif
+*/
 #if CONFIG_G722_MUXER
 AVOutputFormat ff_g722_muxer = {
     .name              = "g722",

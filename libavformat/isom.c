@@ -369,6 +369,7 @@ const AVCodecTag ff_codec_movaudio_tags[] = {
     { AV_CODEC_ID_SMV,             MKTAG('s', 's', 'm', 'v') }, /* 3GPP2 */
     { AV_CODEC_ID_FLAC,            MKTAG('f', 'L', 'a', 'C') }, /* nonstandard */
     { AV_CODEC_ID_AC4,             MKTAG('a', 'c', '-', '4') },
+    { AV_CODEC_ID_AVS3_AUDIO,      MKTAG('a', 'v', '3', 'a') }, /* AVS3-P3 3D Audio/ Audio Vivid bitstream */
     { AV_CODEC_ID_NONE, 0 },
 };
 

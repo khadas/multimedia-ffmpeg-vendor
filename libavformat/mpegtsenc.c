@@ -382,6 +382,9 @@ static int mpegts_write_pmt(AVFormatContext *s, MpegTSService *service)
         case AV_CODEC_ID_OPUS:
             stream_type = STREAM_TYPE_PRIVATE_DATA;
             break;
+        case AV_CODEC_ID_AVS3_AUDIO:
+            stream_type = STREAM_TYPE_AUDIO_AVS3;
+            break;
         case AV_CODEC_ID_TIMED_ID3:
             stream_type = STREAM_TYPE_METADATA;
             break;

@@ -636,8 +636,10 @@ enum AVCodecID {
     AV_CODEC_ID_ATRAC3AL,
     AV_CODEC_ID_ATRAC3PAL,
     AV_CODEC_ID_AC4,
+    AV_CODEC_ID_AVS3_AUDIO,        // AVS3-P3 3D Audio/Audio Vivid Audio Codec ID
 
     AV_CODEC_ID_DRA       = MKBETAG('D','A','R','1'),
+
 
     /* subtitle codecs */
     AV_CODEC_ID_FIRST_SUBTITLE = 0x17000,          ///< A dummy ID pointing at the start of subtitle codecs.
