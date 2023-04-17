@@ -197,6 +197,7 @@ static inline int parse_nal_units(AVCodecParserContext *s, const uint8_t *buf,
     int state = -1, i;
     H2645NAL *nal;
     int is_global = buf == avctx->extradata;
+    int has_sps = 0, has_pps = 0;
 
     if (!h->HEVClc)
         h->HEVClc = av_mallocz(sizeof(HEVCLocalContext));
@@ -273,9 +274,11 @@ PASS:
             ff_hevc_decode_nal_vps(gb, avctx, ps);
             break;
         case HEVC_NAL_SPS:
+            has_sps = 1;
             ff_hevc_decode_nal_sps(gb, avctx, ps, 1);
             break;
         case HEVC_NAL_PPS:
+            has_pps = 1;
             ff_hevc_decode_nal_pps(gb, avctx, ps);
             break;
         case HEVC_NAL_SEI_PREFIX:
@@ -417,6 +420,12 @@ PASS:
                 h->nal_unit_type != HEVC_NAL_RADL_R &&
                 h->nal_unit_type != HEVC_NAL_RASL_R)
                 h->pocTid0 = h->poc;
+
+            if (!s->key_frame && has_sps && has_pps && s->pict_type == AV_PICTURE_TYPE_I
+                && (s->picture_structure == AV_PICTURE_STRUCTURE_TOP_FIELD
+                || s->picture_structure == AV_PICTURE_STRUCTURE_BOTTOM_FIELD)) {
+                s->key_frame = 1;
+            }
 
             return 0; /* no need to evaluate the rest */
         }
