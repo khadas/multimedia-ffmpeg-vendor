@@ -5929,6 +5929,9 @@ static int mov_read_default(MOVContext *c, AVIOContext *pb, MOVAtom atom)
                 total_size += 8;
             }
         }
+        if (a.type == MKTAG('c','t','t','s')) {
+            c->have_ctts = 1;
+        }
         av_log(c->fc, AV_LOG_TRACE, "type:'%s' parent:'%s' sz: %"PRId64" %"PRId64" %"PRId64"\n",
                av_fourcc2str(a.type), av_fourcc2str(atom.type), a.size, total_size, atom.size);
         if (a.size == 0) {
@@ -6496,6 +6499,7 @@ static int mov_read_header(AVFormatContext *s)
     mov->found_audio_presentation = 0;
     mov->fc = s;
     mov->trak_index = -1;
+    mov->have_ctts = 0;
     /* .mov and .mp4 aren't streamable anyway (only progressive download if moov is before mdat) */
     if (pb->seekable & AVIO_SEEKABLE_NORMAL)
         atom.size = avio_size(pb);
@@ -6533,6 +6537,10 @@ static int mov_read_header(AVFormatContext *s)
     /* copy timecode metadata from tmcd tracks to the related video streams */
     for (i = 0; i < s->nb_streams; i++) {
         AVStream *st = s->streams[i];
+        if (st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO && !mov->have_ctts) {
+            av_dict_set_int(&st->metadata, "pts_only", 1, 0);
+            av_log(NULL, AV_LOG_ERROR, "[%s:%d] pts_only set.\n", __FUNCTION__, __LINE__);
+        }
         MOVStreamContext *sc = st->priv_data;
         if (sc->timecode_track > 0) {
             AVDictionaryEntry *tcr;

@@ -274,6 +274,8 @@ typedef struct MOVContext {
     int64_t can_seek;
     int found_audio_presentation;
     int keyframe_count;
+    int pts_only;
+    int have_ctts;
 } MOVContext;
 
 int ff_mp4_read_descr_len(AVIOContext *pb);
