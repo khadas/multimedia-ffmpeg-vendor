@@ -145,8 +145,10 @@ static int dsf_read_packet(AVFormatContext *s, AVPacket *pkt)
     AVStream *st = s->streams[0];
     int64_t pos = avio_tell(pb);
 
-    if (pos >= dsf->data_end)
+    // Drop the last frame, to avoid half-frames causing noise.
+    if ((pos + st->codecpar->block_align) >= dsf->data_end) {
         return AVERROR_EOF;
+    }
 
     pkt->stream_index = 0;
     return av_get_packet(pb, pkt, FFMIN(dsf->data_end - pos, st->codecpar->block_align));
