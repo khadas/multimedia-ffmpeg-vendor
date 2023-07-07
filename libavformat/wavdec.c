@@ -572,6 +572,15 @@ break_loop:
                st->codecpar->codec_id == AV_CODEC_ID_XMA2) {
         st->codecpar->block_align = 2048;
     }
+    if (st->codecpar->codec_id == AV_CODEC_ID_PCM_F64LE || st->codecpar->codec_id == AV_CODEC_ID_PCM_F64BE) {
+        st->codecpar->block_align = 16384;  // default 48K 2ch
+        if (st->codecpar->sample_rate >= 176400) {
+            st->codecpar->block_align *= 2;
+        }
+        if (st->codecpar->channels > 2) {
+            st->codecpar->block_align *= 2;
+        }
+    }
 
     ff_metadata_conv_ctx(s, NULL, wav_metadata_conv);
     ff_metadata_conv_ctx(s, NULL, ff_riff_info_conv);
