@@ -1545,7 +1545,8 @@ static int parse_packet(AVFormatContext *s, AVPacket *pkt, int stream_index)
 
         if (!strcmp(s->iformat->name, "mpegts") &&
             (out_pkt.flags & AV_PKT_FLAG_KEY) &&
-            out_pkt.pts != AV_NOPTS_VALUE) {
+            (out_pkt.pts != AV_NOPTS_VALUE) &&
+            (out_pkt.pos != -1)) {
             ff_reduce_index(s, st->index);
             av_add_index_entry(st, out_pkt.pos, out_pkt.pts,
                                0, 0, AVINDEX_KEYFRAME);
@@ -2989,9 +2990,10 @@ static void estimate_timings_from_pts(AVFormatContext *ic, int64_t old_offset)
             read_size += pkt->size;
             st         = ic->streams[pkt->stream_index];
             if (!strcmp(ic->iformat->name, "mpegts") &&
-                (st->codecpar->codec_type == AVMEDIA_TYPE_AUDIO || st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) &&
+                (st->codecpar->codec_type == AVMEDIA_TYPE_AUDIO ||
+                st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) &&
                 (pkt->pts != AV_NOPTS_VALUE ||
-                pkt->dts != AV_NOPTS_VALUE)) {
+                pkt->dts != AV_NOPTS_VALUE) && (pkt->pos != -1)) {
                 ff_reduce_index(ic, st->index);
                 av_add_index_entry(st, pkt->pos, ((pkt->pts == AV_NOPTS_VALUE) ? pkt->dts : pkt->pts),
                                    0, 0, AVINDEX_KEYFRAME);
