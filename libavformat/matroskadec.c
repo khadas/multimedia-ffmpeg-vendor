@@ -234,7 +234,7 @@ typedef struct MatroskaTrack {
     MatroskaTrackVideo video;
     MatroskaTrackAudio audio;
     MatroskaTrackOperation operation;
-    BlockAdditionMapping blockadditionmapping;
+    EbmlList blockadditionmappings;
     EbmlList encodings;
     uint64_t codec_delay;
     uint64_t codec_delay_in_track_tb;
@@ -567,7 +567,7 @@ static const EbmlSyntax matroska_track[] = {
     { MATROSKA_ID_CODECDOWNLOADURL,      EBML_NONE },
     { MATROSKA_ID_TRACKMINCACHE,         EBML_NONE },
     { MATROSKA_ID_TRACKMAXCACHE,         EBML_NONE },
-    { MATROSKA_ID_BLOCKADDITIONMAPPING,  EBML_NEST,  0, offsetof(MatroskaTrack,blockadditionmapping), { .n = matroska_block_addition_mapping } },
+    { MATROSKA_ID_BLOCKADDITIONMAPPING,  EBML_NEST,  sizeof(BlockAdditionMapping), offsetof(MatroskaTrack, blockadditionmappings), { .n = matroska_block_addition_mapping } },
     { 0 }
 };
 
@@ -2053,17 +2053,17 @@ static int get_qt_codec(MatroskaTrack *track, uint32_t *fourcc, enum AVCodecID *
     return 0;
 }
 
-static void  matroska_parse_dv(AVStream *st,MatroskaTrack *track){
+static void  matroska_parse_dv(AVStream *st,BlockAdditionMapping *blockaddmap){
     st->codec->has_dolby_vision_config_box = 1;
-    uint8_t profile = track->blockadditionmapping.block_add_id_extradata.data[2] >> 1;
-    uint8_t level = ((track->blockadditionmapping.block_add_id_extradata.data[2] & 0x1) << 5) | ((track->blockadditionmapping.block_add_id_extradata.data[3] >> 3) & 0x1f);
-    const uint8_t rpu_present_flag = (track->blockadditionmapping.block_add_id_extradata.data[3] >> 2) & 0x01;
-    const uint8_t el_present_flag = (track->blockadditionmapping.block_add_id_extradata.data[3] >> 1) & 0x01;
-    const uint8_t bl_present_flag = (track->blockadditionmapping.block_add_id_extradata.data[3] & 0x01);
+    uint8_t profile = blockaddmap->block_add_id_extradata.data[2] >> 1;
+    uint8_t level = ((blockaddmap->block_add_id_extradata.data[2] & 0x1) << 5) | ((blockaddmap->block_add_id_extradata.data[3] >> 3) & 0x1f);
+    const uint8_t rpu_present_flag = (blockaddmap->block_add_id_extradata.data[3] >> 2) & 0x01;
+    const uint8_t el_present_flag = (blockaddmap->block_add_id_extradata.data[3] >> 1) & 0x01;
+    const uint8_t bl_present_flag = (blockaddmap->block_add_id_extradata.data[3] & 0x01);
 
     int32_t bl_compatibility_id = 0;
-    if (track->blockadditionmapping.block_add_id_extradata.size >= 4) {
-        bl_compatibility_id = (int32_t)(track->blockadditionmapping.block_add_id_extradata.data[4] >> 4);
+    if (blockaddmap->block_add_id_extradata.size >= 4) {
+        bl_compatibility_id = (int32_t)(blockaddmap->block_add_id_extradata.data[4] >> 4);
     }
     st->codec->has_dolby_vision_config_box = 1;
     st->codec->dolby_vision_profile = profile;
@@ -2078,7 +2078,7 @@ static void  matroska_parse_dv(AVStream *st,MatroskaTrack *track){
     if (profile == 8 || profile == 9) {
         st->codec->dolby_vision_bl_compat_id = bl_compatibility_id;
      }
-    av_log(NULL, AV_LOG_INFO,"codec_tag=0x%x,has_dolby_vision_config_box=%d,extracdata size=%d",st->codecpar->codec_tag,st->codec->has_dolby_vision_config_box,track->blockadditionmapping.block_add_id_extradata.size);
+    av_log(NULL, AV_LOG_INFO,"codec_tag=0x%x,has_dolby_vision_config_box=%d,extracdata size=%d",st->codecpar->codec_tag,st->codec->has_dolby_vision_config_box,blockaddmap->block_add_id_extradata.size);
 
 }
 
@@ -2465,16 +2465,27 @@ static int matroska_parse_tracks(AVFormatContext *s)
             int display_height_mul = 1;
 
             st->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
-            if (track->blockadditionmapping.block_add_id_value == MATROSKA_ADD_ID_TYPE_DVVC){
-                st->codecpar->codec_tag = MKTAG('d', 'v', 'v', 'c');
-                matroska_parse_dv(st,track);
+
+            int isdv = 0;
+            BlockAdditionMapping *blockaddmaps = track->blockadditionmappings.elem;
+            for (int n = 0;n < track->blockadditionmappings.nb_elem; n++) {
+                BlockAdditionMapping *blockaddmap = &blockaddmaps[n];
+                if (blockaddmap->block_add_id_value == MATROSKA_ADD_ID_TYPE_DVVC) {
+                    st->codecpar->codec_tag = MKTAG('d', 'v', 'v', 'c');
+                    matroska_parse_dv(st, blockaddmap);
+                    isdv = 1;
+                    break;
+                }
+                else if (blockaddmap->block_add_id_value  == MATROSKA_ADD_ID_TYPE_DVCC) {
+                    st->codecpar->codec_tag = MKTAG('d', 'v', 'c', 'c');
+                    matroska_parse_dv(st, blockaddmap);
+                    isdv = 1;
+                    break;
+                }
             }
-            else if (track->blockadditionmapping.block_add_id_value  == MATROSKA_ADD_ID_TYPE_DVCC){
-                st->codecpar->codec_tag = MKTAG('d', 'v', 'c', 'c');
-                matroska_parse_dv(st,track);
-            }
-            else
-            st->codecpar->codec_tag  = fourcc;
+
+            if (isdv != 1)
+                st->codecpar->codec_tag  = fourcc;
             if (bit_depth >= 0)
                 st->codecpar->bits_per_coded_sample = bit_depth;
             st->codecpar->width      = track->video.pixel_width;
