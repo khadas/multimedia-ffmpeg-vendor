@@ -820,8 +820,10 @@ static int mpegts_set_stream_info(AVStream *st, PESContext *pes,
     int old_codec_tag  = st->codecpar->codec_tag;
 
     if (avcodec_is_open(st->internal->avctx)) {
-        av_log(pes->stream, AV_LOG_DEBUG, "cannot set stream info, internal codec is open\n");
-        return 0;
+        if (stream_type != 0xd5) {
+            av_log(pes->stream, AV_LOG_DEBUG, "cannot set stream info, internal codec is open\n");
+            return 0;
+        }
     }
 
     avpriv_set_pts_info(st, 33, 1, 90000);
