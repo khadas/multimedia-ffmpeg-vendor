@@ -2639,7 +2639,12 @@ static int seek_frame_internal(AVFormatContext *s, int stream_index,
     if (s->iformat->read_timestamp &&
         !(s->iformat->flags & AVFMT_NOBINSEARCH)) {
         ff_read_frame_flush(s);
-        return ff_seek_frame_binary(s, stream_index, timestamp, flags);
+        ret = ff_seek_frame_binary(s, stream_index, timestamp, flags);
+        if (ret < 0 && !strcmp(s->iformat->name, "flv") && !(s->iformat->flags & AVFMT_NOGENSEARCH)) {
+            ff_read_frame_flush(s);
+            return seek_frame_generic(s, stream_index, timestamp, flags);
+        }
+        return ret;
     } else if (!(s->iformat->flags & AVFMT_NOGENSEARCH)) {
         ff_read_frame_flush(s);
         return seek_frame_generic(s, stream_index, timestamp, flags);

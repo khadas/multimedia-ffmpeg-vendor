@@ -1266,6 +1266,42 @@ static int flv_read_seek(AVFormatContext *s, int stream_index,
     return avio_seek_time(s->pb, stream_index, ts, flags);
 }
 
+static int64_t flv_get_dts(AVFormatContext *s, int stream_index,
+                              int64_t *ppos, int64_t pos_limit)
+{
+    AVPacket *pkt;
+    int64_t pos;
+    pos = *ppos;
+    ff_read_frame_flush(s);
+    if (avio_seek(s->pb, pos, SEEK_SET) < 0)
+        return AV_NOPTS_VALUE;
+    pkt = av_packet_alloc();
+    if (!pkt)
+        return AV_NOPTS_VALUE;
+    while (pos < pos_limit) {
+        int ret = av_read_frame(s, pkt);
+        if (ret < 0) {
+            av_packet_free(&pkt);
+            return AV_NOPTS_VALUE;
+        }
+        if (pkt->dts != AV_NOPTS_VALUE && pkt->pos >= 0 && pkt->flags & AV_PKT_FLAG_KEY) {
+            ff_reduce_index(s, pkt->stream_index);
+            av_add_index_entry(s->streams[pkt->stream_index], pkt->pos, pkt->dts, 0, 0, AVINDEX_KEYFRAME /* FIXME keyframe? */);
+            if (pkt->stream_index == stream_index && pkt->pos >= *ppos) {
+                int64_t dts = pkt->dts;
+                *ppos = pkt->pos;
+                av_packet_free(&pkt);
+                return dts;
+            }
+        }
+        pos = pkt->pos;
+        av_packet_unref(pkt);
+    }
+
+    av_packet_free(&pkt);
+    return AV_NOPTS_VALUE;
+}
+
 #define OFFSET(x) offsetof(FLVContext, x)
 #define VD AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_DECODING_PARAM
 static const AVOption options[] = {
@@ -1289,6 +1325,7 @@ AVInputFormat ff_flv_demuxer = {
     .read_header    = flv_read_header,
     .read_packet    = flv_read_packet,
     .read_seek      = flv_read_seek,
+    .read_timestamp = flv_get_dts,
     .read_close     = flv_read_close,
     .extensions     = "flv",
     .priv_class     = &flv_class,
