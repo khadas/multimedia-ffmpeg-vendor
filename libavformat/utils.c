@@ -52,6 +52,7 @@
 #endif
 #include "riff.h"
 #include "url.h"
+#include "amconfigutils.h"
 
 #include "libavutil/ffversion.h"
 const char av_format_ffversion[] = "FFmpeg version " FFMPEG_VERSION;
@@ -427,7 +428,7 @@ static int init_input(AVFormatContext *s, const char *filename,
         strcpy(listfile+ 6,filename + old_proto_len);
         newFileName = listfile;
         av_log(NULL, AV_LOG_ERROR, "[%s:%d] ---url to %s\n", __FUNCTION__,__LINE__,listfile);
-    } else if (strstr(filename,"rtp://") != NULL && strstr(filename,"ChannelFECPort") != NULL && 1 == am_getconfig_bool("vendor.media.amnuplayer.fec_enable", 0)) {//  // rtp fec protocol
+    } else if (strstr(filename,"rtp://") != NULL && strstr(filename,"ChannelFECPort") != NULL /*&& 1 == am_getconfig_bool_def("vendor.media.amnuplayer.fec_enable", 0)*/) {//  // rtp fec protocol
         char *listfile=av_mallocz(MAX_URL_SIZE);
         strcpy(listfile,"rtpfec");
         strcpy(listfile+ 6,filename + 3);

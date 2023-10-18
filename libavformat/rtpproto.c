@@ -52,6 +52,7 @@
 #include "rtpdec.h"
 #include <sys/ioctl.h>
 #include <ifaddrs.h>
+#include "amconfigutils.h"
 
 #define RTP_TX_BUF_SIZE  (64 * 1024)
 #define RTP_RX_BUF_SIZE  (128 * 1024)
@@ -60,6 +61,8 @@
 #define FEC_PAYLOAD_TYPE_1 127
 #define FEC_PAYLOAD_TYPE_2 97
 #define TRACE() av_log(NULL, AV_LOG_INFO, "[%s:%d]\n", __FUNCTION__, __LINE__);
+
+extern int64_t av_gettime(void);
 
 #ifndef min
 #define min(x, y) ((x) < (y) ? (x) : (y))
