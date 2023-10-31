@@ -1923,6 +1923,7 @@ typedef struct AVFormatContext {
     uint8_t *pssh_info;
     int pssh_len;
     int fcc_fec_flag;
+    int64_t localplay;
 } AVFormatContext;
 
 /**

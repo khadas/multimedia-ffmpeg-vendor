@@ -2948,7 +2948,13 @@ static void estimate_timings_from_pts(AVFormatContext *ic, int64_t old_offset)
     int64_t limit_position = 0;
     int64_t max_position = 0;
     int retry = 0;
+    int fastmode = am_getconfig_int_def("vendor.media.amnuplayer.fastmode", 0);
+    int64_t estimate_size = DURATION_MAX_READ_SIZE;
+    int64_t islocal = ic->localplay;
 
+    if (fastmode == 1 && !islocal)
+        estimate_size = 4096;
+    av_log(ic, AV_LOG_WARNING, "Estimate Size:%lld (Byte)\n", estimate_size);
     /* flush packet queue */
     flush_packet_queue(ic);
 
@@ -2972,14 +2978,14 @@ static void estimate_timings_from_pts(AVFormatContext *ic, int64_t old_offset)
     filesize = ic->pb ? avio_size(ic->pb) : 0;
     do {
         is_end = found_duration;
-        offset = filesize - (DURATION_MAX_READ_SIZE << retry);
+        offset = filesize - (estimate_size << retry);
         if (offset < 0)
             offset = 0;
 
         avio_seek(ic->pb, offset, SEEK_SET);
         read_size = 0;
         for (;;) {
-            if (read_size >= DURATION_MAX_READ_SIZE << (FFMAX(retry - 1, 0)))
+            if (read_size >= estimate_size << (FFMAX(retry - 1, 0)))
                 break;
 
             do {
@@ -3092,14 +3098,14 @@ static void estimate_timings_from_pts(AVFormatContext *ic, int64_t old_offset)
         }while (offset && (offset < filesize));
 
         /*Look for the last pts beside the last pes header*/
-        offset = offset - (DURATION_MAX_READ_SIZE);
+        offset = offset - (estimate_size);
         if (offset < 0)
         offset = 0;
 
         avio_seek(ic->pb, offset, SEEK_SET);
         read_size = 0;
         for (;;) {
-            if (read_size >= DURATION_MAX_READ_SIZE)
+            if (read_size >= estimate_size)
                 break;
             do {
                 ret = ff_read_packet(ic, pkt);
@@ -3165,7 +3171,6 @@ static void estimate_timings_from_av_pts(AVFormatContext *ic, int64_t old_offset
     int is_end;
     int64_t filesize, offset, duration;
     int retry = 0;
-
     /* flush packet queue */
     flush_packet_queue(ic);
 
@@ -3901,10 +3906,15 @@ static int has_decode_delay_been_guessed_ext(AVStream *st)
     return (st->codec_info_nb_frames >= 32 + st->codec->has_b_frames) ||
            (st->codec->width*st->codec->height >= 3840*2160);
 }
+//fastmode refer to different mode
+#define PARSE_MODE_BASE 8
+#define WFD_PARSE_MODE  10
+#define FLV_PARSE_MODE  11
+#define TS_HASPMT_PLUS  128
 
-static int has_codec_parameters_ex(AVCodecContext *enc)
-{
+static int has_codec_parameters_ex(AVCodecContext *enc, int fastmode) {
     int val;
+    if (!fastmode) {
     switch (enc->codec_type) {
         case AVMEDIA_TYPE_AUDIO:
 
@@ -3930,8 +3940,61 @@ static int has_codec_parameters_ex(AVCodecContext *enc)
         default:
             val = 1;
             break;
+        }
     }
-    return enc->codec_id != AV_CODEC_ID_NONE && val != 0;
+    else
+    {
+        switch (enc->codec_type)
+        {
+            case AVMEDIA_TYPE_AUDIO:
+                if (fastmode &&
+                        (enc->codec_id == AV_CODEC_ID_AAC) ||
+                        (enc->codec_id == AV_CODEC_ID_MP3) ||
+                        (enc->codec_id == AV_CODEC_ID_AC3) ||
+                        (enc->codec_id == AV_CODEC_ID_DTS) ||
+                        (enc->codec_id == AV_CODEC_ID_EAC3) ||
+                        (enc->codec_id == AV_CODEC_ID_AAC_LATM))
+                {
+                    if (FLV_PARSE_MODE == fastmode)
+                        val = enc->extradata_size;
+                    else
+                        val = 1;
+                }
+                else
+                {
+                    val = enc->sample_rate && enc->channels;
+                }
+                break;
+            case AVMEDIA_TYPE_VIDEO:
+                 if (enc->width > 1) {
+                     val = enc->width;
+                 } else {
+                      val = 1;
+                }
+
+                break;
+            default:
+                val = 1;
+                break;
+        }
+    }
+    if (WFD_PARSE_MODE == fastmode)
+    {
+        return val != 0;
+    }
+    else
+    {
+        if (fastmode > (PARSE_MODE_BASE + TS_HASPMT_PLUS))  // only ts stream have pmt, can use the skip mode. add by le.yang@amlogic.com
+        {
+            if (enc->codec_type == AVMEDIA_TYPE_DATA ||
+                    enc->codec_type == AVMEDIA_TYPE_ATTACHMENT)
+            {
+                return 1;
+            }
+        }
+        return enc->codec_id != AV_CODEC_ID_NONE && val != 0;
+    }
+
 }
 
 //Some special video source, audio information is not found in probeSize;
@@ -4171,7 +4234,8 @@ int avformat_find_stream_info(AVFormatContext *ic, AVDictionary **options)
     int64_t probesize = ic->probesize;
     int eof_reached = 0;
     int *missing_streams = av_opt_ptr(ic->iformat->priv_class, ic->priv_data, "missing_streams");
-
+    int fastmode = am_getconfig_int_def("vendor.media.amnuplayer.fastmode", 0);
+    int64_t islocal = ic->localplay;
     flush_codecs = probesize > 0;
 
     av_opt_set(ic, "skip_clear", "1", AV_OPT_SEARCH_CHILDREN);
@@ -4298,10 +4362,13 @@ FF_ENABLE_DEPRECATION_WARNINGS
         /* check if one codec still needs to be handled */
         for (i = 0; i < ic->nb_streams; i++) {
             int fps_analyze_framecount = 20;
-
+            if (fastmode && !islocal)
+                fps_analyze_framecount = 10;
             st = ic->streams[i];
-            if (!has_codec_parameters(st, NULL))
+            av_log(ic, AV_LOG_DEBUG, "[%s:%d]stream.index=%d  fps_analyze_framecount=%d\n", __FUNCTION__, __LINE__, i,fps_analyze_framecount);
+            if (!has_codec_parameters_ex(st->codec, fastmode) && st->codec->codec_id != 0) {
                 break;
+            }
             /* If the timebase is coarse (like the usual millisecond precision
              * of mkv), we need to analyze more frames to reliably arrive at
              * the correct fps. */
@@ -4502,8 +4569,8 @@ FF_ENABLE_DEPRECATION_WARNINGS
          * the channel configuration and does not only trust the values from
          * the container. */
          av_log(ic, AV_LOG_INFO, "codec_id %d, guessed %d, para_ex %d\n", st->codec->codec_id,
-                      has_decode_delay_been_guessed_ext(st), has_codec_parameters_ex(st->codec));
-        if (!has_decode_delay_been_guessed_ext(st) && !has_codec_parameters_ex(st->codec))
+                      has_decode_delay_been_guessed_ext(st), has_codec_parameters_ex(st->codec,fastmode));
+        if (!has_decode_delay_been_guessed_ext(st) && !has_codec_parameters_ex(st->codec,fastmode))
             try_decode_frame(ic, st, pkt,
                              (options && i < orig_nb_streams) ? &options[i] : NULL);
 
