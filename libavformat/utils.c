@@ -1597,6 +1597,7 @@ static int read_frame_internal(AVFormatContext *s, AVPacket *pkt)
     int ret = 0, i, got_packet = 0;
     AVDictionary *metadata = NULL;
 
+    int parse_packet_size = 0;
     int64_t first_timeval = avformat_getcurtime_us();
     av_init_packet(pkt);
 
@@ -1718,6 +1719,12 @@ FF_ENABLE_DEPRECATION_WARNINGS
             }
             got_packet = 1;
         } else if (st->discard < AVDISCARD_ALL) {
+#define FRAME_MAX_PARSE_SIZE 33554432 //32M
+            parse_packet_size += pkt->size;
+            if (parse_packet_size > FRAME_MAX_PARSE_SIZE && !strcmp(s->iformat->name, "mpegts")) {
+                av_log(s, AV_LOG_ERROR, "no frame found after parsed %d bytes, return EOF\n", parse_packet_size);
+                return AVERROR_EOF;
+            }
             if ((ret = parse_packet(s, &cur_pkt, cur_pkt.stream_index)) < 0)
                 return ret;
             st->codecpar->sample_rate = st->internal->avctx->sample_rate;
