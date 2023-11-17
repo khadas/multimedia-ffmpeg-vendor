@@ -695,48 +695,11 @@ typedef struct RtpFccContext
     int alreadyNatTraversaled; // traversal flag
 } RtpFccContext;
 
-static void get_local_ip_using_ifaddrs(char *str_ip)
+static int check_net_phy_conn_status(void)
 {
-    struct ifaddrs * ifAddrStruct=NULL;
-    void * tmpAddrPtr=NULL;
+    int nNetDownOrUp = am_getconfig_int_def("net.ethwifi.up",3);//0-eth&wifi both down, 1-eth up, 2-wifi up, 3-eth&wifi both up
 
-    getifaddrs(&ifAddrStruct);
-
-    while (ifAddrStruct != NULL)
-    {
-        if (ifAddrStruct->ifa_addr->sa_family == AF_INET)  // check it is IP4
-        {
-            tmpAddrPtr = &((struct sockaddr_in *)ifAddrStruct->ifa_addr)->sin_addr;
-            inet_ntop(AF_INET, tmpAddrPtr, str_ip, INET_ADDRSTRLEN);
-            if (strcmp("127.0.0.1", str_ip))
-            {
-                 break;
-            }
-        } else if(ifAddrStruct->ifa_addr->sa_family == AF_INET6){
-            // is a valid IP6 Address
-            tmpAddrPtr=&((struct sockaddr_in *)ifAddrStruct->ifa_addr)->sin_addr;
-            inet_ntop(AF_INET6, tmpAddrPtr, str_ip, INET6_ADDRSTRLEN);
-            //if (strcmp("::1/128", str_ip))
-                //break;
-        }
-        ifAddrStruct=ifAddrStruct->ifa_next;
-    }
-    freeifaddrs(ifAddrStruct);
-}
-
-static int check_net_phy_conn_status() {
-    char local_ip[100] = {0};
-    get_local_ip_using_ifaddrs(local_ip);
-    if (local_ip[0] != 0
-        || strcmp("127.0.0.1",local_ip)
-        || strncmp(local_ip,"0.",2)
-        || strncmp(local_ip,"169.",4)
-        ||  strncmp(local_ip,"::1/128",7))
-    {
-        return 1;
-    }
-
-    return 0;
+    return nNetDownOrUp;
 }
 
 int judge_seq_discontinuity(int seq1, int seq2, int seq3);
