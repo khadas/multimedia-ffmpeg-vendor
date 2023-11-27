@@ -1720,7 +1720,9 @@ FF_ENABLE_DEPRECATION_WARNINGS
             got_packet = 1;
         } else if (st->discard < AVDISCARD_ALL) {
 #define FRAME_MAX_PARSE_SIZE 33554432 //32M
-            parse_packet_size += pkt->size;
+            if (pkt->size > 0 && pkt->size < INT32_MAX) {
+                parse_packet_size += pkt->size;
+            }
             if (parse_packet_size > FRAME_MAX_PARSE_SIZE && !strcmp(s->iformat->name, "mpegts")) {
                 av_log(s, AV_LOG_ERROR, "no frame found after parsed %d bytes, return EOF\n", parse_packet_size);
                 return AVERROR_EOF;
