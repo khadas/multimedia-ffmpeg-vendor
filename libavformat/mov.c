@@ -6641,6 +6641,43 @@ static int mov_read_header(AVFormatContext *s)
         }
     }
 
+    /* check if the media file is incomplete and obtain the correct duration */
+    int64_t filesize = mov->fc->pb ? avio_size(mov->fc->pb) : 0;
+    if (filesize > 0) {
+        int is_incomplete_file = 0;
+        for (i = 0; i < s->nb_streams; i++) {
+            AVStream *st = s->streams[i];
+            int pos_over_filesize = 0;
+            /* reverse the search to increase efficiency */
+            for (j = st->nb_index_entries - 1; j > 0; j--) {
+                AVIndexEntry *e = &st->index_entries[j];
+                /* check the latest entey at first */
+                if (j == st->nb_index_entries - 1 && e->pos < filesize) {
+                    break;
+                }
+                if (e->pos >= filesize) {
+                    pos_over_filesize = 1;
+                } else if (pos_over_filesize && e->pos < filesize) {
+                    st->duration = e->timestamp;
+                    is_incomplete_file = 1;
+                    break;
+                }
+            }
+        }
+        if (is_incomplete_file) {
+            int64_t duration = 0;
+            /* obtain the longest duration among all streams */
+            for (i = 0; i < s->nb_streams; i++) {
+                AVStream *st = s->streams[i];
+                if (st->duration > duration) {
+                    duration = st->duration;
+                    mov->fc->duration = av_rescale_q(st->duration, st->time_base, AV_TIME_BASE_Q);
+                }
+            }
+            av_log(mov->fc, AV_LOG_WARNING, "incomplete file, modify duration to %"PRId64"", mov->fc->duration);
+        }
+    }
+
     if (mov->trex_data) {
         for (i = 0; i < s->nb_streams; i++) {
             AVStream *st = s->streams[i];
