@@ -255,6 +255,63 @@ static int is_rtp_mpegts(uint8_t *data, int size)
     return 1;
 }
 
+#define MAXQSIZE 6
+typedef struct {
+    RTPPacket *base[MAXQSIZE];
+    int front;
+    int rear;
+}SeQueue;//sequencequeue
+
+static int InitQueue(SeQueue *Q)
+{
+    for (int i = 0; i < MAXQSIZE; i++)
+        Q->base[i] = NULL;
+
+    Q->front = Q->rear = 0;
+    return 1;
+}
+
+static int EmptyQueue(SeQueue Q){
+
+    if (Q.front == Q.rear)
+        return 1;
+    else
+        return 0;
+}
+
+static int FullQueue(SeQueue Q){
+
+    if ((Q.rear + 1) % MAXQSIZE == Q.front)
+        return 1;
+    else
+        return 0;
+}
+
+static int EnQueue(SeQueue *Q, RTPPacket *e){
+
+    if (FullQueue(*Q))
+        return 0;
+    Q->base[Q->rear] = e;
+    Q->rear = (Q->rear + 1) % MAXQSIZE;
+    return 1;
+}
+
+static int QueueLength(SeQueue Q){
+
+    return (Q.rear - Q.front + MAXQSIZE) % MAXQSIZE;
+}
+
+static int DeQueue(SeQueue *Q, RTPPacket **e){
+
+    if (EmptyQueue(*Q))
+    {
+        return 0;
+    }
+    *e = Q->base[Q->front];
+    Q->front = (Q->front + 1) % MAXQSIZE;
+    return 1;
+}
+
 // For RTP + fcc fec
 typedef struct {
     RtpFccFecPacket *base[MAXQSIZE];
@@ -540,6 +597,192 @@ exit:
     ITEM_UNLOCK(itemlist);
 
     return 0;
+}
+
+static int rtp_enqueue_packet1(struct itemlist *itemlist, RTPPacket* lpkt, int(*freefun)(void*))
+
+{
+    RTPPacket *ltailpkt=NULL;
+    struct item *newitem=NULL;
+    RTPPacket *headpkt=NULL;
+    int ret = 0;
+    int rt = -1;
+
+    itemlist_peek_tail_data(itemlist, (unsigned long*)&ltailpkt);
+
+    if (NULL == ltailpkt || (ltailpkt != NULL &&seq_less(ltailpkt->seq,lpkt->seq) == 1))
+    {
+        // append to the tail
+        if (NULL != ltailpkt && NULL != lpkt && 1 != (lpkt->seq-ltailpkt->seq & MAX_RTP_SEQ-1))
+        {
+            av_log(NULL, AV_LOG_INFO, "[%s:%d],tailSeq:%d,insertSeq:%d\n", __FUNCTION__, __LINE__,ltailpkt->seq,lpkt->seq);
+        }
+        ret= itemlist_add_tail_data(itemlist, (unsigned long)lpkt);
+        if (ret != 0)
+            freefun(lpkt);
+        return 0;
+    }
+
+    itemlist_peek_head_data(itemlist, (unsigned long*)&headpkt);
+    if (headpkt != NULL && seq_less(lpkt->seq, headpkt->seq)) {
+        av_log(NULL, AV_LOG_INFO, "[%s:%d],headSeq:%d,insertSeq:%d\n", __FUNCTION__, __LINE__,headpkt->seq,lpkt->seq);
+        newitem = item_alloc(itemlist->item_ext_buf_size);
+        if (newitem == NULL)
+        {
+            av_log(NULL, AV_LOG_INFO, "[%s:%d]\n", __FUNCTION__, __LINE__);
+            freefun(lpkt);
+            return -12;//noMEM
+        }
+        newitem->item_data = (unsigned long)lpkt;
+        ITEM_LOCK(itemlist);
+        list_add(&(newitem->list), &(itemlist->list));
+        itemlist->item_count++;
+        ITEM_UNLOCK(itemlist);
+        return 0;
+    }
+
+    // insert to the queue
+    struct item *item = NULL;
+    struct item *nextItem = NULL;
+    struct list_head *llist=NULL, *tmplist=NULL;
+    RTPPacket *nextRtpPac = NULL;
+    RTPPacket *llistpkt=NULL;
+    int CntList = 0;
+    char used = 0;
+
+    newitem = item_alloc(itemlist->item_ext_buf_size);
+    if (newitem == NULL)
+    {
+        av_log(NULL, AV_LOG_INFO, "[%s:%d],CntList:%d\n", __FUNCTION__, __LINE__,CntList);
+        freefun(lpkt);
+        return -12;//noMEM
+    }
+    newitem->item_data = (unsigned long)lpkt;
+
+
+    ITEM_LOCK(itemlist);
+    item = list_entry(itemlist->list.next, struct item, list);
+    headpkt = (RTPPacket *)(item->item_data);
+
+    if (seq_less(lpkt->seq,headpkt->seq) == 1)
+    {
+        // insert to head
+        av_log(NULL, AV_LOG_INFO, "[%s:%d],try headSeq:%d,insertSeq:%d\n", __FUNCTION__, __LINE__,headpkt->seq,lpkt->seq);
+        list_add(&(newitem->list), &(itemlist->list));
+        itemlist->item_count++;
+        used = 1;
+        goto exit;
+    }
+
+    list_for_each_prev_safe(llist, tmplist, &itemlist->list)
+    {
+        CntList++;
+        item = list_entry(llist, struct item, list);
+        llistpkt = (RTPPacket *)(item->item_data);
+        if (lpkt->seq == llistpkt->seq)
+        {
+            av_log(NULL, AV_LOG_INFO, "[%s:%d]The Replication packet, seq=%d\n", __FUNCTION__, __LINE__,lpkt->seq);
+            item_free(newitem);
+            freefun(lpkt);
+            lpkt=NULL;
+            used = 1;
+            break;
+        }
+        else if (seq_less(llistpkt->seq, lpkt->seq)==1)
+        {
+            // insert to front
+            if (NULL != nextItem)
+            {
+                nextRtpPac = (RTPPacket *)nextItem->item_data;
+                av_log(NULL, AV_LOG_INFO, "[%s:%d],middle insert pre:%d,insert:%d,next:%d, item_count:%d\n", __FUNCTION__, __LINE__,llistpkt->seq, lpkt->seq,nextRtpPac->seq, itemlist->item_count);
+            } else {
+                av_log(NULL, AV_LOG_INFO, "[%s:%d],middle pac,lpkt->seq:%d,llistpkt->seq:%d\n", __FUNCTION__, __LINE__,lpkt->seq,llistpkt->seq);
+            }
+
+            list_add(&(newitem->list), &(item->list));
+            itemlist->item_count++;
+            used = 1;
+            break;
+        }
+        nextItem = item;
+    }
+
+    if (!used) {
+        av_log(NULL, AV_LOG_INFO, "[%s:%d]\n", __FUNCTION__, __LINE__);
+        if (!list_empty(&itemlist->list)) {
+            item = list_entry(itemlist->list.next, struct item, list);
+            headpkt = (RTPPacket *)(item->item_data);
+            av_log(NULL, AV_LOG_INFO, "[%s:%d] insert failed, try check head again! head seq:%d, pkt seq:%d\n", __FUNCTION__, __LINE__, headpkt->seq, lpkt->seq);
+            if (seq_subtraction(headpkt->seq, lpkt->seq) != 1) {
+                item_free(newitem);
+                freefun(lpkt);
+                goto exit;
+            }
+        }
+        list_add(&(newitem->list), &(itemlist->list));
+        itemlist->item_count++;
+    }
+
+exit:
+    ITEM_UNLOCK(itemlist);
+
+    return 0;
+}
+
+
+static int64_t ff_network_gettime(void)
+{
+    struct timeval tv;
+    gettimeofday(&tv,NULL);
+    return (int64_t)tv.tv_sec * 1000000 + tv.tv_usec;
+}
+
+static int FreeSavedRtpPacket(SeQueue *Q){
+      RTPPacket * savedlpkt = NULL;
+      while (DeQueue(Q, &savedlpkt))
+      {
+           rtp_free_packet((void *)savedlpkt);
+      }
+      return 1;
+}
+
+static void ConstructSavedRtpPacket(RTPPacket **savedlpkt)
+{
+    uint8_t * lpoffset=NULL;
+    int offset=0;
+    uint8_t * lpkt_buf=NULL;
+    int len=0;
+    int ext=0;
+    int csrc = 0;
+
+    (*savedlpkt)->seq = AV_RB16((*savedlpkt)->buf + 2);
+    lpkt_buf=(*savedlpkt)->buf;
+    len=(*savedlpkt)->len;
+
+    // output the playload data
+    offset = 12 ;
+    lpoffset = lpkt_buf + 12;
+    csrc = lpkt_buf[0] & 0x0f;
+    ext = lpkt_buf[0] & 0x10;
+    if (ext > 0)
+    {
+        offset += 4*csrc;
+        lpoffset += 4*csrc;
+        if (len < offset + 4)
+        {
+            av_log(NULL, AV_LOG_ERROR, "[%s:%d]len < offset + 4\n",__FUNCTION__,__LINE__);
+        }
+
+        ext = (AV_RB16(lpoffset + 2) + 1) << 2;
+        if (len < ext + offset)
+        {
+            av_log(NULL, AV_LOG_ERROR, "[%s:%d]len < ext + offset\n",__FUNCTION__,__LINE__);
+        }
+        offset+=ext;
+        lpoffset+=ext;
+        }
+        (*savedlpkt)->valid_data_offset=offset;
+
 }
 
 static int FccFreeSavedRtpPacket(FccSeQueue *Q){
@@ -1137,6 +1380,13 @@ typedef struct RTPContext {
     int write_to_source;
     struct sockaddr_storage last_rtp_source, last_rtcp_source;
     socklen_t last_rtp_source_len, last_rtcp_source_len;
+    volatile uint8_t brunning;
+    pthread_t recv_thread;
+    struct itemlist recvlist;
+    struct item *cur_item;
+    ContextItem Signalling;
+    int last_seq;
+    int report_flag;
     int ttl;
     int buffer_size;
     int rtcp_port, local_rtpport, local_rtcpport;
@@ -1383,6 +1633,232 @@ static void rtp_parse_addr_list(URLContext *h, char *buf,
     }
 }
 
+static int inner_rtp_read1(URLContext *_URLContext, uint8_t *buf, int size)
+{
+    URLContext * h = (URLContext *)_URLContext;
+    RTPContext * s = h->priv_data;
+    struct sockaddr_storage from;
+    socklen_t from_len;
+    int len, n, i;
+    struct pollfd p[2] = {{s->rtp_fd, POLLIN, 0}, {s->rtcp_fd, POLLIN, 0}};
+    struct sockaddr_storage *addrs[2] = { &s->last_rtp_source, &s->last_rtcp_source };
+    socklen_t *addr_lens[2] = { &s->last_rtp_source_len, &s->last_rtcp_source_len };
+
+    for (;;) {
+        if (ff_check_interrupt(&h->interrupt_callback)) {
+            return AVERROR_EXIT;
+        }
+        n = poll(p, 2, 100);
+        if (n > 0) {
+            /* first try RTCP, then RTP */
+            for (i = 1; i >= 0; i--) {
+                if (!(p[i].revents & POLLIN))
+                    continue;
+                *addr_lens[i] = sizeof(*addrs[i]);
+                len = recvfrom(p[i].fd, buf, size, 0,
+                                (struct sockaddr *)addrs[i], addr_lens[i]);
+                if (len < 0) {
+                    if (ff_neterrno() == AVERROR(EAGAIN) ||
+                        ff_neterrno() == AVERROR(EINTR))
+                        continue;
+                    return AVERROR(EIO);
+                }
+                if (rtp_check_source_lists(s, addrs[i]))
+                    continue;
+                return len;
+            }
+        } else if (n < 0) {
+            if (ff_neterrno() == AVERROR(EINTR))
+                continue;
+            return AVERROR(EIO);
+        } else {
+            return AVERROR(EAGAIN);
+        }
+    }
+}
+
+static void *rtp_recv_task( void *_URLContext)
+{
+    av_log(NULL, AV_LOG_INFO, "[%s:%d]rtp recv_buffer_task start running!!!\n", __FUNCTION__, __LINE__);
+    URLContext * h = (URLContext *)_URLContext;
+    RTPContext * s = h->priv_data;
+    if (NULL == s)
+    {
+        av_log(NULL, AV_LOG_INFO, "[%s:%d]Null handle!!!\n", __FUNCTION__, __LINE__);
+        goto rtp_thread_end;
+    }
+    RTPPacket * lpkt = NULL;
+    int datalen=0 ;
+    int payload_type=0;
+    uint8_t * lpoffset=NULL;
+    uint8_t * lpkt_buf=NULL;
+    int len=0;
+    int ext=0;
+    int csrc = 0;
+    int rtp_mpegts_num =0;
+    int mpegts_num =0;
+    int rtp_mpegts_flag = 1; // need to detec:0 rtp_mpegts:1;mpegts:2
+    uint16_t sequence_numer = 0;
+    int chk_pkt_num = 5;
+    SeQueue RtpPacketQueue,MpegtsPacketQueue;
+    RTPPacket * savedlpkt = NULL;
+
+    rtp_mpegts_flag = am_getconfig_int_def("media.player.rtp_mpegts_flag",1);//default:1, 0-need to detect, 1-rtp, 2-mpegts
+    if (0 == rtp_mpegts_flag)
+    {
+        InitQueue(&RtpPacketQueue);
+        InitQueue(&MpegtsPacketQueue);
+    }
+    chk_pkt_num = am_getconfig_int_def("media.player.chk_pkt_num",2);//chk_pkt_num should be less than MAXQSIZE, more than zero
+    av_log(NULL, AV_LOG_INFO, "[%s:%d]rtp_mpegts_flag=%d,chk_pkt_num =%d \n", __FUNCTION__, __LINE__,rtp_mpegts_flag,chk_pkt_num);
+
+    while (s->brunning > 0)
+    {
+        if (ff_check_interrupt(&h->interrupt_callback))
+        {
+            goto rtp_thread_end;
+        }
+
+        if (s->recvlist.item_count >= 100)
+        {
+            usleep(10);
+            continue;
+        }
+
+        if (lpkt != NULL)
+        {
+            rtp_free_packet((void *)lpkt);
+            lpkt=NULL;
+        }
+
+        // malloc the packet buffer
+        lpkt = av_mallocz(sizeof(RTPPacket));
+        if (NULL == lpkt)
+        {
+            goto rtp_thread_end;
+        }
+        lpkt->buf= av_malloc(RTPPROTO_RECVBUF_SIZE);
+        if (NULL == lpkt->buf)
+        {
+            goto rtp_thread_end;
+        }
+        // recv data
+        lpkt->len = inner_rtp_read1(h, lpkt->buf, RTPPROTO_RECVBUF_SIZE);
+
+        //detect rtp_mpegts or mpegts
+        if (0 == rtp_mpegts_flag) //need to detect
+        {
+            if (is_rtp_mpegts(lpkt->buf, lpkt->len))
+            {
+                rtp_mpegts_num++;
+                EnQueue(&RtpPacketQueue, lpkt);
+                lpkt = NULL;
+                av_log(NULL, AV_LOG_INFO, "[%s:%d]rtp_mpegts_flag =%d,is_rtp_mpegts true rtp_mpegts_num=%d,mpegts_num =%d,front =%d,rear =%d,length =%d \n", __FUNCTION__, __LINE__,rtp_mpegts_flag,rtp_mpegts_num,mpegts_num,RtpPacketQueue.front,RtpPacketQueue.rear,QueueLength(RtpPacketQueue));
+
+            }
+            else if (is_mpegts(lpkt->buf, lpkt->len))
+            {
+                mpegts_num++;
+                EnQueue(&MpegtsPacketQueue, lpkt);
+                lpkt = NULL;
+                av_log(NULL, AV_LOG_INFO, "[%s:%d]rtp_mpegts_flag =%d, is_mpegts true rtp_mpegts_num=%d,mpegts_num =%d,front =%d,rear =%d,length =%d \n", __FUNCTION__, __LINE__,rtp_mpegts_flag,rtp_mpegts_num,mpegts_num,MpegtsPacketQueue.front,MpegtsPacketQueue.rear,QueueLength(MpegtsPacketQueue));
+            }
+
+            if (rtp_mpegts_num == chk_pkt_num)
+            {
+                rtp_mpegts_flag = 1;
+                FreeSavedRtpPacket(&MpegtsPacketQueue);
+                av_log(NULL, AV_LOG_INFO, "[%s:%d]rtp_mpegts_flag=%d,front =%d,rear =%d,length =%d \n", __FUNCTION__, __LINE__,rtp_mpegts_flag,RtpPacketQueue.front,RtpPacketQueue.rear,QueueLength(RtpPacketQueue));
+                while (DeQueue(&RtpPacketQueue, &savedlpkt))
+                {
+
+                    ConstructSavedRtpPacket(&savedlpkt);
+                    av_log(NULL, AV_LOG_INFO, "[%s:%d]rtp_mpegts_flag=%d,savedlpkt->valid_data_offset =%d,savedlpkt->seq =%d\n", __FUNCTION__, __LINE__,rtp_mpegts_flag,savedlpkt->valid_data_offset,savedlpkt->seq);
+                    if (rtp_enqueue_packet1(&(s->recvlist), savedlpkt, rtp_free_packet)<0)
+                    {
+                        FreeSavedRtpPacket(&RtpPacketQueue);
+                        goto rtp_thread_end;
+                    }
+                    av_log(NULL, AV_LOG_INFO, "[%s:%d]rtp_mpegts_flag=%d,front =%d,rear =%d,length =%d \n", __FUNCTION__, __LINE__,rtp_mpegts_flag,RtpPacketQueue.front,RtpPacketQueue.rear,QueueLength(RtpPacketQueue));
+                }
+            }
+            else if (mpegts_num == chk_pkt_num)
+            {
+                rtp_mpegts_flag = 2;
+                FreeSavedRtpPacket(&RtpPacketQueue);
+                av_log(NULL, AV_LOG_INFO, "[%s:%d]rtp_mpegts_flag=%d,front =%d,rear =%d,length =%d \n", __FUNCTION__, __LINE__,rtp_mpegts_flag,MpegtsPacketQueue.front,MpegtsPacketQueue.rear,QueueLength(MpegtsPacketQueue));
+
+                while (DeQueue(&MpegtsPacketQueue, &savedlpkt))
+                {
+                    savedlpkt->valid_data_offset=0;
+                    savedlpkt->seq = sequence_numer ++;
+                    av_log(NULL, AV_LOG_INFO, "[%s:%d]rtp_mpegts_flag=%d,savedlpkt->valid_data_offset =%d,savedlpkt->seq =%d\n", __FUNCTION__, __LINE__,rtp_mpegts_flag,savedlpkt->valid_data_offset,savedlpkt->seq);
+
+                    if (rtp_enqueue_packet1(&(s->recvlist), savedlpkt, rtp_free_packet)<0)
+                    {
+                        FreeSavedRtpPacket(&MpegtsPacketQueue);
+                        goto rtp_thread_end;
+                    }
+                    av_log(NULL, AV_LOG_INFO, "[%s:%d]rtp_mpegts_flag=%d,front =%d,rear =%d,length =%d \n", __FUNCTION__, __LINE__,rtp_mpegts_flag,MpegtsPacketQueue.front,MpegtsPacketQueue.rear,QueueLength(MpegtsPacketQueue));
+                }
+            }
+            continue;
+        }
+
+        if (1 == rtp_mpegts_flag) //handle udp + rtp + mpegts
+        {
+            if (lpkt->len <=12)
+            {
+                av_log(NULL, AV_LOG_INFO, "[%s:%d]receive wrong packet len=%d \n", __FUNCTION__, __LINE__,lpkt->len);
+                usleep(10);
+                continue;
+            }
+            // paser data and buffer the packat
+            payload_type = lpkt->buf[1] & 0x7f;
+            lpkt->seq = AV_RB16(lpkt->buf + 2);
+            if (33 == payload_type)
+            {
+                lpkt_buf=lpkt->buf;
+                len=lpkt->len;
+                lpkt->valid_data_offset = 0;
+                if (rtp_enqueue_packet1(&(s->recvlist), lpkt, rtp_free_packet)<0)
+                {
+                    goto rtp_thread_end;
+                }
+
+            }
+            else
+            {
+                av_log(NULL, AV_LOG_ERROR, "[%s:%d]unknown payload type = %d, seq=%d\n", __FUNCTION__, __LINE__, payload_type,lpkt->seq);
+                continue;
+            }
+        }
+        else if (2 == rtp_mpegts_flag) //handle udp + mpegts
+        {
+            if (lpkt->buf[0] == 0x47)
+            {
+                lpkt->valid_data_offset=0;
+                lpkt->seq = sequence_numer ++;
+                if (rtp_enqueue_packet1(&(s->recvlist), lpkt, rtp_free_packet)<0)
+                {
+                    goto rtp_thread_end;
+                }
+            }
+            else
+            {
+                av_log(NULL, AV_LOG_ERROR, "[%s:%d]unknown mpegts payload = %d\n", __FUNCTION__, __LINE__, lpkt->buf[0]);
+                continue;
+            }
+        }
+        lpkt = NULL;
+    }
+
+    rtp_thread_end:
+    s->brunning =0;
+    av_log(NULL, AV_LOG_ERROR, "[%s:%d]rtp recv_buffer_task end!!!\n", __FUNCTION__, __LINE__);
+    return NULL;
+}
+
 /**
  * url syntax: rtp://host:port[?option=val...]
  * option: 'ttl=n'            : set the ttl value (for multicast only)
@@ -1547,7 +2023,21 @@ static int rtp_open(URLContext *h, const char *uri, int flags)
        access */
     s->rtp_fd = ffurl_get_file_handle(s->rtp_hd);
     s->rtcp_fd = ffurl_get_file_handle(s->rtcp_hd);
-
+    if (am_getconfig_int_def("vendor.media.rtp.usethread",0)) {
+        s->recvlist.max_items = max_rtp_buf;
+        s->recvlist.item_ext_buf_size = 0;
+        s->recvlist.muti_threads_access = 1;
+        s->recvlist.reject_same_item_data = 0;
+        itemlist_init(&s->recvlist) ;
+        s->cur_item = NULL;
+        s->brunning = 1;
+        av_log(NULL, AV_LOG_INFO, "[%s:%d]use cache mode\n",__FUNCTION__,__LINE__);
+        if (pthread_create(&(s->recv_thread), NULL, rtp_recv_task, h)) {
+            av_log(NULL, AV_LOG_ERROR, "[%s:%d]ffmpeg_pthread_create failed\n",__FUNCTION__,__LINE__);
+            goto fail;
+        }
+        pthread_setname_np(s->recv_thread, "ffmpeg_rtp");
+    }
     h->max_packet_size = s->rtp_hd->max_packet_size;
     h->is_streamed = 1;
 
@@ -1571,43 +2061,107 @@ static int rtp_read(URLContext *h, uint8_t *buf, int size)
 {
     RTPContext *s = h->priv_data;
     int len, n, i;
+    int64_t curtime;
+    int64_t starttime = ff_network_gettime();
     struct pollfd p[2] = {{s->rtp_fd, POLLIN, 0}, {s->rtcp_fd, POLLIN, 0}};
     int poll_delay = h->flags & AVIO_FLAG_NONBLOCK ? 0 : 100;
     struct sockaddr_storage *addrs[2] = { &s->last_rtp_source, &s->last_rtcp_source };
     socklen_t *addr_lens[2] = { &s->last_rtp_source_len, &s->last_rtcp_source_len };
     int runs = h->rw_timeout / 1000 / POLLING_TIME;
+    if (am_getconfig_int_def("vendor.media.rtp.usethread",0))  {
+        RTPPacket *lpkt = NULL;
+        int readsize=0;
+        int single_readsize=0;
 
-    for(;;) {
-        if (ff_check_interrupt(&h->interrupt_callback))
-            return AVERROR_EXIT;
-        n = poll(p, 2, poll_delay);
-        if (n > 0) {
-            /* first try RTCP, then RTP */
-            for (i = 1; i >= 0; i--) {
-                if (!(p[i].revents & POLLIN))
-                    continue;
-                *addr_lens[i] = sizeof(*addrs[i]);
-                len = recvfrom(p[i].fd, buf, size, 0,
-                                (struct sockaddr *)addrs[i], addr_lens[i]);
-                if (len < 0) {
-                    if (ff_neterrno() == AVERROR(EAGAIN) ||
-                        ff_neterrno() == AVERROR(EINTR))
-                        continue;
-                    return AVERROR(EIO);
+        while (s->brunning > 0 && readsize == 0) {
+            if (ff_check_interrupt(&h->interrupt_callback))
+                return AVERROR(EIO);
+
+            if (check_net_phy_conn_status() == 0)
+                break;
+
+            if (s->recvlist.item_count <= 5) {
+                curtime = ff_network_gettime();
+                if (starttime <= 0)
+                    starttime = curtime;
+                if (gd_report_error_enable && (curtime > starttime + (int64_t)(get_data_timeout*1000*1000)) && !s->report_flag) {
+                    //ffmpeg_notify(h, MEDIA_INFO_DOWNLOAD_ERROR, 10003, ERROR_EVNET_TYPE_RTP);
+                    s->report_flag = 1;
                 }
-                if (rtp_check_source_lists(s, addrs[i]))
-                    continue;
-                return len;
-            }
-        } else if (n == 0 && h->rw_timeout > 0 && --runs <= 0) {
-            return AVERROR(ETIMEDOUT);
-        } else if (n < 0) {
-            if (ff_neterrno() == AVERROR(EINTR))
+                usleep(10);
                 continue;
-            return AVERROR(EIO);
+            }
+            usleep(10);
+
+            if (s->cur_item == NULL)
+                s->cur_item = itemlist_get_head(&s->recvlist);
+
+            if (s->cur_item  == NULL) {
+                usleep(10);
+                continue;
+            }
+            lpkt = (RTPPacket*)s->cur_item->item_data;
+            starttime = 0;
+            s->report_flag = 0;
+            int expect_seq = (s->last_seq+1)%MAX_RTP_SEQ;
+            if (expect_seq != lpkt->seq) {
+                RTPPacket *headpkt = NULL;
+                itemlist_peek_head_data(&s->recvlist, (unsigned long*)&headpkt);
+                if (headpkt && headpkt->seq == expect_seq) {
+                    av_log(NULL, AV_LOG_ERROR, "[%s:%d] drop seq=%d,nextseq:%d the right seq=%d\n",__FUNCTION__,__LINE__, lpkt->seq,headpkt->seq,expect_seq);
+                    item_free(s->cur_item);
+                    s->cur_item = NULL;
+                    rtp_free_packet((void *)lpkt);
+                    lpkt=NULL;
+                    continue;
+                }
+            }
+            readsize = lpkt->len;
+            memcpy(buf, lpkt->buf+lpkt->valid_data_offset, readsize);
+            if (expect_seq != lpkt->seq) {
+                av_log(NULL, AV_LOG_WARNING, "[%s:%d]discontinuity seq=%d, the right seq=%d\n",__FUNCTION__,__LINE__, lpkt->seq,expect_seq);
+            }
+            s->last_seq = lpkt->seq;
+            // already read, no valid data clean it
+            item_free(s->cur_item);
+            s->cur_item = NULL;
+            rtp_free_packet((void *)lpkt);
+            lpkt=NULL;
         }
-        if (h->flags & AVIO_FLAG_NONBLOCK)
-            return AVERROR(EAGAIN);
+        return readsize;
+    } else {
+        for (;;) {
+            if (ff_check_interrupt(&h->interrupt_callback))
+                return AVERROR_EXIT;
+            n = poll(p, 2, poll_delay);
+            if (n > 0) {
+                /* first try RTCP, then RTP */
+                for (i = 1; i >= 0; i--) {
+                    if (!(p[i].revents & POLLIN))
+                        continue;
+                    *addr_lens[i] = sizeof(*addrs[i]);
+                    len = recvfrom(p[i].fd, buf, size, 0,
+                                    (struct sockaddr *)addrs[i], addr_lens[i]);
+                    if (len < 0) {
+                        if (ff_neterrno() == AVERROR(EAGAIN) ||
+                            ff_neterrno() == AVERROR(EINTR))
+                            continue;
+                        return AVERROR(EIO);
+                    }
+                    if (rtp_check_source_lists(s, addrs[i]))
+                        continue;
+                    return len;
+                }
+            } else if (n == 0 && h->rw_timeout > 0 && --runs <= 0) {
+                return AVERROR(ETIMEDOUT);
+            } else if (n < 0) {
+                if (ff_neterrno() == AVERROR(EINTR))
+                    continue;
+                return AVERROR(EIO);
+            }
+            if (h->flags & AVIO_FLAG_NONBLOCK)
+                return AVERROR(EAGAIN);
+        }
     }
 }
 
@@ -1701,7 +2255,18 @@ static int rtp_close(URLContext *h)
 {
     RTPContext *s = h->priv_data;
     int i;
-
+    if (am_getconfig_int_def("vendor.media.rtp.usethread",0))  {
+        s->brunning =0;
+        pthread_join(s->recv_thread, NULL);
+        s->recv_thread = 0;
+        if (s->cur_item) {
+            rtp_free_packet((void*)s->cur_item->item_data);
+            s->cur_item->item_data = 0;
+            item_free(s->cur_item);
+            s->cur_item = NULL;
+        }
+        itemlist_clean(&s->recvlist, rtp_free_packet);
+    }
     for (i = 0; i < s->nb_ssm_include_addrs; i++)
         av_freep(&s->ssm_include_addrs[i]);
     av_freep(&s->ssm_include_addrs);
@@ -4262,7 +4827,7 @@ static void *RtpFccRecvTask( void *_RtpFccContext)
                         //  goto thread_end;
                         goto EndAbnormal;
                     }
-                    amthreadpool_thread_usleep(10);
+                    usleep(10);
                     // retry
                     ret=rtp_enqueue_packet(&(s->feccontext->feclist), lpkt, rtpfec_free_packet);
                     try_cnt++;
@@ -4928,13 +5493,6 @@ static int rtpfcc_reset(URLContext *h)
     rtpfcc_close(h);
     rtpfcc_open(h,uri,flags);
     return 0;
-}
-
-static int64_t ff_network_gettime(void)
-{
-    struct timeval tv;
-    gettimeofday(&tv,NULL);
-    return (int64_t)tv.tv_sec * 1000000 + tv.tv_usec;
 }
 
 static void judge_report_error(URLContext *h, int64_t* starttime)

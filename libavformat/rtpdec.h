@@ -142,6 +142,7 @@ typedef struct RTPPacket {
     uint16_t seq;
     uint8_t *buf;
     int len;
+    int valid_data_offset;
     int64_t recvtime;
     struct RTPPacket *next;
 } RTPPacket;
