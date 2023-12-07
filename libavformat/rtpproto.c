@@ -1644,10 +1644,7 @@ static int inner_rtp_read1(URLContext *_URLContext, uint8_t *buf, int size)
     struct sockaddr_storage *addrs[2] = { &s->last_rtp_source, &s->last_rtcp_source };
     socklen_t *addr_lens[2] = { &s->last_rtp_source_len, &s->last_rtcp_source_len };
 
-    for (;;) {
-        if (ff_check_interrupt(&h->interrupt_callback)) {
-            return AVERROR_EXIT;
-        }
+    while (s->brunning > 0) {
         n = poll(p, 2, 100);
         if (n > 0) {
             /* first try RTCP, then RTP */
@@ -1675,6 +1672,7 @@ static int inner_rtp_read1(URLContext *_URLContext, uint8_t *buf, int size)
             return AVERROR(EAGAIN);
         }
     }
+    return AVERROR(EAGAIN);
 }
 
 static void *rtp_recv_task( void *_URLContext)
@@ -1714,11 +1712,6 @@ static void *rtp_recv_task( void *_URLContext)
 
     while (s->brunning > 0)
     {
-        if (ff_check_interrupt(&h->interrupt_callback))
-        {
-            goto rtp_thread_end;
-        }
-
         if (s->recvlist.item_count >= 100)
         {
             usleep(10);
@@ -2074,8 +2067,10 @@ static int rtp_read(URLContext *h, uint8_t *buf, int size)
         int single_readsize=0;
 
         while (s->brunning > 0 && readsize == 0) {
-            if (ff_check_interrupt(&h->interrupt_callback))
+            if (ff_check_interrupt(&h->interrupt_callback)) {
+                s->brunning = 0;
                 return AVERROR(EIO);
+            }
 
             if (check_net_phy_conn_status() == 0)
                 break;
@@ -3247,7 +3242,7 @@ static int JoinMulticast(RtpFccContext *Rfc)
     URLContext* ptmpMultUc = NULL;
     URLContext* ptmpMultAndFecUc = NULL;
 
-    int ret = SetupUdpSocket(&ptmpMultUc, Rfc->Multicast.StrIp, Rfc->Multicast.StrPort, Rfc->Multicast.Port,-1,1,NULL);
+    int ret = SetupUdpSocket(&ptmpMultUc, Rfc->Multicast.StrIp, Rfc->Multicast.StrPort, Rfc->Multicast.Port,-1,1,&(Rfc->Signalling.Uc->interrupt_callback));
     if (0 == ret)
     {
         Rfc->Multicast.Fd = ffurl_get_file_handle(ptmpMultUc);
