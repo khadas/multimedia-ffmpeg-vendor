@@ -3571,6 +3571,9 @@ static void mov_fix_index(MOVContext *mov, AVStream *st)
     if (edit_list_index == 0) {
         av_log(mov->fc, AV_LOG_WARNING, "no edit list entry\n");
         return;
+    } else if (edit_list_index == 1 && edit_list_duration < st->duration) {
+        av_log(mov->fc, AV_LOG_WARNING, "edit list entry duration smaller than stream duration\n");
+        return;
     } else {
         edit_list_index = 0;
     }
