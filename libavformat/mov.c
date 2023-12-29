@@ -4887,8 +4887,14 @@ static int mov_read_trun(MOVContext *c, AVIOContext *pb, MOVAtom atom)
     frag->implicit_offset = offset;
 
     sc->track_end = dts + sc->time_offset;
-    if (st->duration < sc->track_end)
-        st->duration = sc->track_end;
+    if (sc->elst_count) {
+        if (st->duration < sc->track_end)
+            st->duration = sc->track_end;
+    } else {
+        /*There is no elst, so time_offset&track_end is not unrealiable for duration computation, need use duration_for_fps*/
+        st->duration = sc->duration_for_fps;
+        av_log(NULL, AV_LOG_DEBUG, "[%s:%d] Use duration_for_fps for st->duration:%lld\n", __FUNCTION__, __LINE__, st->duration);
+    }
 
     return 0;
 }
