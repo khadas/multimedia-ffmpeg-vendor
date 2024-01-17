@@ -1275,6 +1275,8 @@ static int64_t flv_get_dts(AVFormatContext *s, int stream_index,
     ff_read_frame_flush(s);
     if (avio_seek(s->pb, pos, SEEK_SET) < 0)
         return AV_NOPTS_VALUE;
+    if (resync(s) < 0)
+        return AV_NOPTS_VALUE;
     pkt = av_packet_alloc();
     if (!pkt)
         return AV_NOPTS_VALUE;
