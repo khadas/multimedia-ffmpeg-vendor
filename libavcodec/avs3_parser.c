@@ -68,6 +68,9 @@ static void parse_avs3_nal_units(AVCodecParserContext *s, const uint8_t *buf,
         return;
     }
 
+    /* set default values */
+    s->key_frame = 0;
+
     if (buf[0] == 0x0 && buf[1] == 0x0 && buf[2] == 0x1) {
         if (buf[3] == AVS3_SEQ_START_CODE) {
             GetBitContext gb;

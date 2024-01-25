@@ -133,6 +133,9 @@ static void parse_avs_nal_units(AVCodecParserContext *s, const uint8_t *buf, int
         return;
     }
 
+    /* set default values */
+    s->key_frame = 0;
+
     if (buf[0] == 0x0 && buf[1] == 0x0 && buf[2] == 0x1) {
         if (buf[3] == (CAVS_START_CODE & 0xff) || buf[3] == (PIC_I_START_CODE & 0xff)) {
             s->key_frame = 1;
@@ -238,6 +241,9 @@ static int cavs2video_parse(AVCodecParserContext *s,
             return buf_size;
         }
     }
+
+    /* set default values */
+    s->key_frame = 0;
 
     if (buf[0] == 0x0 && buf[1] == 0x0 && buf[2] == 0x1) {
         if (buf[3] == (CAVS_START_CODE & 0xff) || buf[3] == (PIC_I_START_CODE & 0xff)
