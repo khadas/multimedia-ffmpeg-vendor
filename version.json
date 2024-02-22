@@ -2,11 +2,16 @@
     "version" : {
         "major" : 3,
         "minor" : 3,
-        "amlogicver" : 3,
-        "commit" : "b29ca8d7f89e8050bb19b148e648ad276cce03c1",
+        "amlogicver" : 4,
+        "commit" : "861be7c96bfb601288053b15e823f841e0fcbbd5",
         "header" : "version.h"
     },
     "history" : [
+        {
+            "versionStr" : "V3.3.3",
+            "Release_CommitId" : "861be7c96bfb601288053b15e823f841e0fcbbd5",
+            "Base_CommitID" : "d7aaaf1f05570b57dc25568115fc67fdb455a513"
+        },
         {
             "versionStr" : "V3.3.2",
             "Release_CommitId" : "b29ca8d7f89e8050bb19b148e648ad276cce03c1",
