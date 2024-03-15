@@ -553,7 +553,6 @@ enum AVCodecID {
     AV_CODEC_ID_AAC,
     AV_CODEC_ID_AC3,
     AV_CODEC_ID_DTS,
-    AV_CODEC_ID_DTS_X,
     AV_CODEC_ID_VORBIS,
     AV_CODEC_ID_DVAUDIO,
     AV_CODEC_ID_WMAV1,
@@ -640,6 +639,7 @@ enum AVCodecID {
     AV_CODEC_ID_AVS3_AUDIO,        // AVS3-P3 3D Audio/Audio Vivid Audio Codec ID
 
     AV_CODEC_ID_DRA       = MKBETAG('D','A','R','1'),
+    AV_CODEC_ID_DTS_X,
 
 
     /* subtitle codecs */
