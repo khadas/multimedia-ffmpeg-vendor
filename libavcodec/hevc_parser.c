@@ -350,7 +350,9 @@ PASS:
             avctx->width    = ps->sps->width;
             avctx->height   = ps->sps->height;
             avctx->pix_fmt  = ps->sps->pix_fmt;
-
+            avctx->colorspace = ps->sps->vui.matrix_coeffs;
+            avctx->color_primaries = ps->sps->vui.colour_primaries;
+            avctx->color_trc = ps->sps->vui.transfer_characteristic;
             if (ps->vps->vps_timing_info_present_flag) {
                 num = ps->vps->vps_num_units_in_tick;
                 den = ps->vps->vps_time_scale;
